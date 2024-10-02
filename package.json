@@ -1,0 +1,13 @@
+{
+  "name": "notion-google-sync",
+  "version": "1.0.0",
+  "description": "tool to sync tasks of notion to google calendar",
+  "main": "src/index.js",
+  "author": "Oliver Hagenauer <oliverhagenauer@hotmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "dotenv": "^16.4.5"
+  }
+}
