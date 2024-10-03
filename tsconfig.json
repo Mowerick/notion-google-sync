@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./src",
+    "plugins": [{ "transform": "typescript-transform-paths" }],
+    "paths": {
+      "google": ["Google"],
+      "notion": ["Notion"],
+      "config": ["Utils/Config"],
+      "logger": ["Utils/Logger"]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "require": ["typescript-transform-paths/register"]
+  },
+  "include": ["src/**/*.ts", "src/**/**/*.ts"],
+  "exclude": ["node_modules"]
+}
