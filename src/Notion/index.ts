@@ -86,7 +86,7 @@ async function fetchNotionPage(
           .rich_text[0]?.plain_text || '';
 
       return {
-        id: page.id || '',
+        id: page.id?.split('-').join('') || '',
         status,
         task,
         availableOnStart,

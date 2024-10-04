@@ -4,7 +4,11 @@ import fs from 'fs';
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
 
 import config from 'config';
-import createCalendarEvent, { EventInput, ServiceAccountKey } from 'google';
+import {
+  createOrUpdateCalendarEvent,
+  EventInput,
+  ServiceAccountKey,
+} from 'google';
 import fetchNotionPage from 'notion';
 
 async function main() {
@@ -49,11 +53,13 @@ async function main() {
       const event: EventInput = {
         id: page.id,
         summary: tags + page.task,
-        description: page.status + '\n' + page.description,
+        description: page.status
+          ? page.status + '\n' + page.description
+          : page.description,
         ...date,
         location: page.location,
       };
-      createCalendarEvent(googleAuth, googleCalendarId, event);
+      createOrUpdateCalendarEvent(googleAuth, googleCalendarId, event);
     }
 
     if (page.availableOnEnd) {
@@ -71,11 +77,13 @@ async function main() {
       const event: EventInput = {
         id: page.id,
         summary: 'Available: ' + page.task,
-        description: page.description,
+        description: page.status
+          ? page.status + '\n' + page.description
+          : page.description,
         ...date,
         location: page.location,
       };
-      createCalendarEvent(googleAuth, googleCalendarId, event);
+      createOrUpdateCalendarEvent(googleAuth, googleCalendarId, event);
     }
   });
 }

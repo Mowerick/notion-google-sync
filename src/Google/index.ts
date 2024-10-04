@@ -1,5 +1,5 @@
-import { calendar_v3 } from '@googleapis/calendar'; // Import from @googleapis/calendar
-import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
+import { calendar_v3 } from '@googleapis/calendar';
+import { JWT } from 'google-auth-library';
 
 import logger from 'logger'; // Assuming you have a custom logger
 
@@ -31,60 +31,93 @@ export interface ServiceAccountKey {
   client_x509_cert_url: string;
 }
 
-async function createCalendarEvent(
+// Function to create or update a calendar event
+export async function createOrUpdateCalendarEvent(
   authClient: JWT, // Authenticated OAuth2 client
   calendarId: string, // Google Calendar ID
-  event: EventInput
-): Promise<calendar_v3.Schema$Event> {
+  event: EventInput // Event details to insert or update
+): Promise<calendar_v3.Schema$Event | undefined> {
   const calendar = new calendar_v3.Calendar({ auth: authClient });
-  const date = event.startDateTime
+  const { startDateTime, startDate, endDateTime, endDate, timezone, ...rest } =
+    event;
+  // Prepare the date fields based on input (all-day vs time-specific events)
+  const date = startDateTime
     ? {
         start: {
-          dateTime: event.startDateTime,
-          timeZone: event.timezone || 'UTC',
+          dateTime: startDateTime,
+          timeZone: timezone || 'UTC',
         },
         end: {
-          dateTime: event.endDateTime,
-          timeZone: event.timezone || 'UTC',
+          dateTime: endDateTime,
+          timeZone: timezone || 'UTC',
         },
       }
     : {
         start: {
-          date: event.startDate,
+          date: startDate,
         },
         end: {
-          date: event.endDate,
+          date: endDate,
         },
       };
 
   // Create the event request body based on input
   const eventRequest: calendar_v3.Schema$Event = {
-    summary: event.summary,
-    description: event.description || '',
+    ...rest,
     ...date,
-    attendees:
-      event.attendees?.map((attendee) => ({ email: attendee.email })) || [],
-    location: event.location || '',
   };
 
   try {
-    // Insert the event into the calendar
-    const response = await calendar.events.insert({
-      calendarId: calendarId,
-      requestBody: eventRequest,
-    });
-
-    if (response.status === 200 && response.data) {
-      logger.info(`Event created: ${response.data.htmlLink}`);
-      return response.data;
-    } else {
-      throw new Error('Failed to create event');
+    // Check if the event with the given ID exists in the calendar
+    let existingEvent: calendar_v3.Schema$Event | null = null;
+    try {
+      existingEvent = await calendar.events
+        .get({
+          calendarId: calendarId,
+          eventId: event.id,
+        })
+        .then((response) => response.data);
+    } catch (error: any) {
+      if (error.code !== 404) {
+        // Log and throw error if it's not a 'not found' error
+        logger.error('Error checking for existing event: ', error);
+        throw error;
+      }
     }
-  } catch (error) {
-    logger.error('Error creating event: ', error);
-  }
+    if (existingEvent) {
+      // If the event exists, update it
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars
+      const { id, ...rest } = eventRequest;
+      const updateResponse = await calendar.events.update({
+        calendarId: calendarId,
+        eventId: event.id,
+        requestBody: rest,
+      });
 
-  return {};
+      if (updateResponse.status === 200 && updateResponse.data) {
+        logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
+        return updateResponse.data;
+      } else {
+        throw new Error('Failed to update event');
+      }
+    } else {
+      // If the event does not exist, create a new one
+      const createResponse = await calendar.events.insert({
+        calendarId: calendarId,
+        requestBody: eventRequest,
+      });
+
+      if (createResponse.status === 200 && createResponse.data) {
+        logger.info(`Event created: ${createResponse.data.htmlLink}`);
+        return createResponse.data;
+      } else {
+        throw new Error('Failed to create event');
+      }
+    }
+  } catch (error: any) {
+    logger.error('Error creating or updating event: ', error);
+    throw error;
+  }
 }
 
-export default createCalendarEvent;
+export default createOrUpdateCalendarEvent;
