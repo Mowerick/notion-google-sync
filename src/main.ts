@@ -20,6 +20,7 @@ async function main() {
   });
 
   const googleCalendarId = config.google.calendarId;
+
   const databaseParam: QueryDatabaseParameters = {
     filter: {
       property: 'Status',
@@ -36,6 +37,7 @@ async function main() {
       const dueDateStart: string = page.dueDateEnd
         ? new Date(page.dueDateStart).toISOString()
         : new Date(page.dueDateStart).toISOString().split('T')[0];
+
       const dueDateEnd: string = page.dueDateEnd
         ? new Date(page.dueDateEnd).toISOString()
         : new Date(page.dueDateStart).toISOString().split('T')[0];
@@ -43,6 +45,7 @@ async function main() {
       const date = page.dueDateEnd
         ? { startDateTime: dueDateStart, endDateTime: dueDateEnd }
         : { startDate: dueDateStart, endDate: dueDateEnd };
+
       const event: EventInput = {
         id: page.id,
         summary: tags + page.task,

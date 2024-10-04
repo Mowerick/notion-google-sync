@@ -1,7 +1,7 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "editor.formatOnType": false, // required
   "editor.formatOnPaste": false, // optional
@@ -10,7 +10,8 @@
   "files.autoSave": "onFocusChange", // optional but recommended
   // Automatically fix ESLint issues on save
   "editor.codeActionsOnSave": {
-    "source.fixAll": "always" // This will fix ESLint and Prettier issues
+    "source.fixAll": "always", // This will fix ESLint and Prettier issues
+    "source.organizeImports": "always"
   },
   "vs-code-prettier-eslint.prettierLast": false,
   "[ignore]": {
