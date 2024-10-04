@@ -1,18 +1,23 @@
 import winston from "winston";
-import fs from 'fs';
+import fs from "fs";
+import config from "config";
 
-const LOG_FILE_PATH = './script.log';
+const filename = config.logger.filename;
+const path = config.logger.path;
+const logFilePath =
+  (path.endsWith("/") ? path : path + "/") +
+  (filename.startsWith("/") ? filename.substring(1) : filename);
 
-fs.writeFileSync(LOG_FILE_PATH, '', 'utf-8');
+if (path) fs.mkdirSync(path, { recursive: true });
 
+fs.writeFileSync(logFilePath, "", "utf-8");
+console.log(logFilePath);
 const logger: winston.Logger = winston.createLogger({
-  level: 'info',
+  level: "info",
   format: winston.format.printf(({ level, message }) => {
     return `${new Date().toISOString()} [${level.toUpperCase()}] ${message}`;
   }),
-  transports: [
-    new winston.transports.File({ filename: LOG_FILE_PATH })
-  ],
+  transports: [new winston.transports.File({ filename: logFilePath })],
 });
 
 export default logger;

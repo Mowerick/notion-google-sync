@@ -11,5 +11,8 @@
   "vs-code-prettier-eslint.prettierLast": false,
   "[ignore]": {
     "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[dotenv]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
   } // set as "true" to run 'prettier' last not first
 }

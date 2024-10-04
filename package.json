@@ -16,7 +16,7 @@
     "start": "ts-node src/main.ts",
     "build": "npx tspc",
     "dev": "npx tspc --watch --incremental",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write \"**/*.{ts,tsx,json,css,scss,md}\""
   },
   "devDependencies": {
     "@types/node": "^22.7.4",

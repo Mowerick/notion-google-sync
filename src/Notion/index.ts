@@ -1,4 +1,4 @@
-import { Client } from "@notionhq/client";
+import { Client } from '@notionhq/client';
 import {
   DatePropertyItemObjectResponse,
   MultiSelectPropertyItemObjectResponse,
@@ -7,8 +7,8 @@ import {
   RichTextPropertyItemObjectResponse,
   StatusPropertyItemObjectResponse,
   TitlePropertyItemObjectResponse,
-} from "@notionhq/client/build/src/api-endpoints";
-import logger from "logger";
+} from '@notionhq/client/build/src/api-endpoints';
+import logger from 'logger';
 
 interface Task {
   status: string | null;
@@ -21,7 +21,7 @@ interface Task {
 
 async function fetchNotionPage(
   notionClient: Client,
-  param: QueryDatabaseParameters,
+  param: QueryDatabaseParameters
 ): Promise<Array<Task> | undefined> {
   try {
     // Query the database
@@ -30,32 +30,32 @@ async function fetchNotionPage(
     // Map over the results to extract the required properties
     const tasks = response.results.map((page) => {
       // Ensure page is of type PageObjectResponse
-      if (!("properties" in page)) {
-        throw new Error("Invalid page object");
+      if (!('properties' in page)) {
+        throw new Error('Invalid page object');
       }
 
       const properties = (page as PageObjectResponse).properties;
 
       const status =
-        (properties["Status"] as StatusPropertyItemObjectResponse).status
+        (properties['Status'] as StatusPropertyItemObjectResponse).status
           ?.name || null;
       const task =
-        (properties["Task"] as unknown as TitlePropertyItemObjectResponse).title
+        (properties['Task'] as unknown as TitlePropertyItemObjectResponse).title
           ?.plain_text || null;
       const availableOn =
-        (properties["Available on"] as DatePropertyItemObjectResponse).date
+        (properties['Available on'] as DatePropertyItemObjectResponse).date
           ?.start || null;
       const dueDate =
-        (properties["Due date"] as DatePropertyItemObjectResponse).date
+        (properties['Due date'] as DatePropertyItemObjectResponse).date
           ?.start || null;
       const tags =
         (
-          properties["Tags"] as MultiSelectPropertyItemObjectResponse
+          properties['Tags'] as MultiSelectPropertyItemObjectResponse
         ).multi_select.map((tag) => tag.name) || [];
       const description =
         (
           properties[
-            "Description"
+            'Description'
           ] as unknown as RichTextPropertyItemObjectResponse
         ).rich_text?.plain_text || null;
 
