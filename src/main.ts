@@ -55,6 +55,7 @@ async function main() {
       };
       createCalendarEvent(googleAuth, googleCalendarId, event);
     }
+
     if (page.availableOn) {
       const availableOn: Date = new Date(page.availableOn);
       const event: EventInput = {
