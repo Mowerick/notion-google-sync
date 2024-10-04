@@ -1,5 +1,6 @@
-import winston from 'winston';
 import fs from 'fs';
+import winston from 'winston';
+
 import config from 'config';
 
 const filename = config.logger.filename;

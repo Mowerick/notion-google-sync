@@ -6,6 +6,7 @@ import {
   RichTextItemResponse,
   StatusPropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
+
 import logger from 'logger';
 
 interface Task {

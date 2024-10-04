@@ -1,15 +1,16 @@
 {
-  "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[json]": {
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "editor.formatOnType": false, // required
   "editor.formatOnPaste": false, // optional
   "editor.formatOnSave": true, // optional
   "editor.formatOnSaveMode": "file", // required to format on save
   "files.autoSave": "onFocusChange", // optional but recommended
+  // Automatically fix ESLint issues on save
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll": "always" // This will fix ESLint and Prettier issues
   },
   "vs-code-prettier-eslint.prettierLast": false,
   "[ignore]": {

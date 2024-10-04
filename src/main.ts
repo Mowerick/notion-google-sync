@@ -1,11 +1,11 @@
 import { Client } from '@notionhq/client';
-import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
 import { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoints';
 import fs from 'fs';
+import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
 
-import fetchNotionPage from 'notion';
 import config from 'config';
 import createCalendarEvent, { EventInput, ServiceAccountKey } from 'google';
+import fetchNotionPage from 'notion';
 
 async function main() {
   const notionClient = new Client({ auth: config.notion.api.token });
@@ -40,9 +40,6 @@ async function main() {
         ? new Date(page.dueDateEnd).toISOString()
         : new Date(page.dueDateStart).toISOString().split('T')[0];
 
-      console.log('*****************************+');
-      console.log(dueDateEnd);
-      console.log(dueDateStart);
       const date = page.dueDateEnd
         ? { startDateTime: dueDateStart, endDateTime: dueDateEnd }
         : { startDate: dueDateStart, endDate: dueDateEnd };
@@ -65,7 +62,7 @@ async function main() {
         endDateTime: availableOn.toISOString(),
         location: page.location,
       };
-      // createCalendarEvent(googleAuth, googleCalendarId, event);
+      createCalendarEvent(googleAuth, googleCalendarId, event);
     }
   });
 }

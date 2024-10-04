@@ -7,7 +7,7 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier-eslint"
+    "prettier"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -15,27 +15,39 @@
     "sourceType": "commonjs",
     "project": "./tsconfig.json"
   },
-  "plugins": ["@typescript-eslint", "prettier-eslint", "unused-imports"],
+  "plugins": ["@typescript-eslint", "prettier", "unused-imports", "import"],
   "rules": {
     "prettier/prettier": ["error", { "singleQuote": true }],
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/no-unused-imports": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }
+    ],
     "@typescript-eslint/no-explicit-any": "warn",
     "import/order": [
       "error",
       {
         "groups": [
-          "builtin", // Node.js builtins like fs, path
-          "external", // External modules (installed in node_modules)
-          "internal", // Absolute imports (you can adjust this based on your project structure)
-          "parent", // Parent imports (../)
-          "sibling", // Sibling imports (./)
-          "index", // Index imports (./ or ../)
-          "object", // Imports of the entire module via a single object import
-          "type" // Type imports (Flow/TS)
+          ["builtin", "external"],
+          ["internal", "parent", "sibling", "index"]
         ],
-        "newlines-between": "always" // Enforce newlines between import groups
+        "newlines-between": "always",
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        }
       }
     ],
     "no-console": ["error", { "allow": ["warn", "error"] }]

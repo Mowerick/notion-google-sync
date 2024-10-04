@@ -1,5 +1,6 @@
-import { calendar_v3, auth as googleAuth } from '@googleapis/calendar'; // Import from @googleapis/calendar
+import { calendar_v3 } from '@googleapis/calendar'; // Import from @googleapis/calendar
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
+
 import logger from 'logger'; // Assuming you have a custom logger
 
 // Define the structure for event input
