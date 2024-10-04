@@ -31,7 +31,8 @@ async function fetchNotionPage(
     const tasks = response.results.map((page) => {
       // Ensure page is of type PageObjectResponse
       if (!('properties' in page)) {
-        throw new Error('Invalid page object');
+        logger.error('Invalid page object');
+        throw Error('Invalid page object');
       }
 
       const properties = (page as PageObjectResponse).properties;

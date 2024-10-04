@@ -52,8 +52,9 @@ async function createCalendarEvent(
     }
   } catch (error) {
     logger.error('Error creating event: ', error);
-    throw error;
   }
+
+  return {};
 }
 
 export default createCalendarEvent;
