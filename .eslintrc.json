@@ -12,15 +12,33 @@
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2020,
-    "sourceType": "module",
+    "sourceType": "commonjs",
     "project": "./tsconfig.json"
   },
-  "plugins": ["@typescript-eslint", "prettier-eslint"],
+  "plugins": ["@typescript-eslint", "prettier-eslint", "unused-imports"],
   "rules": {
     "prettier/prettier": ["error", { "singleQuote": true }],
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/no-explicit-any": "warn"
+    "@typescript-eslint/no-unused-imports": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          "builtin", // Node.js builtins like fs, path
+          "external", // External modules (installed in node_modules)
+          "internal", // Absolute imports (you can adjust this based on your project structure)
+          "parent", // Parent imports (../)
+          "sibling", // Sibling imports (./)
+          "index", // Index imports (./ or ../)
+          "object", // Imports of the entire module via a single object import
+          "type" // Type imports (Flow/TS)
+        ],
+        "newlines-between": "always" // Enforce newlines between import groups
+      }
+    ],
+    "no-console": ["error", { "allow": ["warn", "error"] }]
   },
   "settings": {
     "import/resolver": {

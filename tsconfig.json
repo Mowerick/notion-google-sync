@@ -4,6 +4,8 @@
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./dist",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

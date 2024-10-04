@@ -2,4 +2,6 @@
 node_modules/
 dist/
 .tsbuildinfo
-script.log
+*.log
+log/
+google_service_account_key.json

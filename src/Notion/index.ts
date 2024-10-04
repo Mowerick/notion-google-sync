@@ -2,21 +2,34 @@ import { Client } from '@notionhq/client';
 import {
   DatePropertyItemObjectResponse,
   MultiSelectPropertyItemObjectResponse,
-  PageObjectResponse,
   QueryDatabaseParameters,
-  RichTextPropertyItemObjectResponse,
+  RichTextItemResponse,
   StatusPropertyItemObjectResponse,
-  TitlePropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import logger from 'logger';
 
 interface Task {
-  status: string | null;
-  task: string | null;
-  availableOn: string | null;
-  dueDate: string | null;
+  id: string;
+  status: string;
+  task: string;
+  availableOn: string;
+  dueDateStart: string;
+  dueDateEnd: string;
   tags: string[];
-  description: string | null;
+  description: string;
+  location: string;
+}
+
+interface TitleObjectResponse {
+  type: 'title';
+  title: Array<RichTextItemResponse>;
+  id: string;
+}
+
+interface RichTextObjectRespone {
+  type: 'rich_text';
+  rich_text: Array<RichTextItemResponse>;
+  id: string;
 }
 
 async function fetchNotionPage(
@@ -35,38 +48,48 @@ async function fetchNotionPage(
         throw Error('Invalid page object');
       }
 
-      const properties = (page as PageObjectResponse).properties;
+      const properties = page.properties;
 
       const status =
         (properties['Status'] as StatusPropertyItemObjectResponse).status
-          ?.name || null;
+          ?.name || '';
       const task =
-        (properties['Task'] as unknown as TitlePropertyItemObjectResponse).title
-          ?.plain_text || null;
+        (properties['Task'] as TitleObjectResponse).title[0]?.plain_text || '';
       const availableOn =
         (properties['Available on'] as DatePropertyItemObjectResponse).date
-          ?.start || null;
-      const dueDate =
+          ?.start || '';
+      const dueDateStart =
         (properties['Due date'] as DatePropertyItemObjectResponse).date
-          ?.start || null;
+          ?.start || '';
+      const dueDateEnd =
+        (properties['Due date'] as DatePropertyItemObjectResponse).date?.end ||
+        '';
       const tags =
         (
           properties['Tags'] as MultiSelectPropertyItemObjectResponse
-        ).multi_select.map((tag) => tag.name) || [];
+        ).multi_select
+          .map((tag) => tag.name)
+          .sort() || [];
+      // Extract description (rich text is also an array)
       const description =
-        (
-          properties[
-            'Description'
-          ] as unknown as RichTextPropertyItemObjectResponse
-        ).rich_text?.plain_text || null;
+        (properties['Description'] as unknown as RichTextObjectRespone)
+          .rich_text[0]?.plain_text || '';
+
+      // Extract location (rich text is also an array)
+      const location =
+        (properties['Location'] as unknown as RichTextObjectRespone)
+          .rich_text[0]?.plain_text || '';
 
       return {
+        id: page.id || '',
         status,
         task,
         availableOn,
-        dueDate,
+        dueDateStart,
+        dueDateEnd,
         tags,
         description,
+        location,
       };
     });
 

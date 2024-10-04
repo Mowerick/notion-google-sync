@@ -7,10 +7,12 @@ interface Config {
       clientId: string;
       clientSecret: string;
       redirectUri: string;
+      serviceAccountKey: string;
     };
+    calendarId: string;
   };
   notion: {
-    uniTasksId: string;
+    pageId: string;
     api: {
       token: string;
     };
@@ -26,11 +28,13 @@ const config: Config = {
     api: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost',
+      redirectUri: process.env.GOOGLE_REDIRECT_URI || '',
+      serviceAccountKey: process.env.GOOGLE_SERVICE_KEY_FILE || '',
     },
+    calendarId: process.env.GOOGLE_CALENDAR_ID || '',
   },
   notion: {
-    uniTasksId: process.env.UNI_TASKS_ID || '',
+    pageId: process.env.PAGE_ID || '',
     api: {
       token: process.env.NOTION_TOKEN || '',
     },
