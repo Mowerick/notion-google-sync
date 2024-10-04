@@ -56,14 +56,23 @@ async function main() {
       createCalendarEvent(googleAuth, googleCalendarId, event);
     }
 
-    if (page.availableOn) {
-      const availableOn: Date = new Date(page.availableOn);
+    if (page.availableOnEnd) {
+      const availableDateStart: string = page.availableOnEnd
+        ? new Date(page.availableOnStart).toISOString()
+        : new Date(page.availableOnStart).toISOString().split('T')[0];
+
+      const availableDateEnd: string = page.availableOnEnd
+        ? new Date(page.availableOnEnd).toISOString()
+        : new Date(page.availableOnStart).toISOString().split('T')[0];
+
+      const date = page.availableOnEnd
+        ? { startDateTime: availableDateStart, endDateTime: availableDateEnd }
+        : { startDate: availableDateStart, endDate: availableDateEnd };
       const event: EventInput = {
         id: page.id,
         summary: 'Available: ' + page.task,
         description: page.description,
-        startDateTime: availableOn.toISOString(),
-        endDateTime: availableOn.toISOString(),
+        ...date,
         location: page.location,
       };
       createCalendarEvent(googleAuth, googleCalendarId, event);

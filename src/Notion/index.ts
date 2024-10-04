@@ -13,7 +13,8 @@ interface Task {
   id: string;
   status: string;
   task: string;
-  availableOn: string;
+  availableOnStart: string;
+  availableOnEnd: string;
   dueDateStart: string;
   dueDateEnd: string;
   tags: string[];
@@ -56,9 +57,12 @@ async function fetchNotionPage(
           ?.name || '';
       const task =
         (properties['Task'] as TitleObjectResponse).title[0]?.plain_text || '';
-      const availableOn =
+      const availableOnStart =
         (properties['Available on'] as DatePropertyItemObjectResponse).date
           ?.start || '';
+      const availableOnEnd =
+        (properties['Available on'] as DatePropertyItemObjectResponse).date
+          ?.end || '';
       const dueDateStart =
         (properties['Due date'] as DatePropertyItemObjectResponse).date
           ?.start || '';
@@ -85,7 +89,8 @@ async function fetchNotionPage(
         id: page.id || '',
         status,
         task,
-        availableOn,
+        availableOnStart,
+        availableOnEnd,
         dueDateStart,
         dueDateEnd,
         tags,
