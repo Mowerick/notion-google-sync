@@ -1,9 +1,9 @@
 import { Client } from '@notionhq/client';
 import {
   DatePropertyItemObjectResponse,
-  MultiSelectPropertyItemObjectResponse,
   QueryDatabaseParameters,
   RichTextItemResponse,
+  SelectPropertyItemObjectResponse,
   StatusPropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
@@ -13,11 +13,11 @@ interface Task {
   id: string;
   status: string;
   task: string;
-  availableOnStart: string;
-  availableOnEnd: string;
-  dueDateStart: string;
-  dueDateEnd: string;
-  tags: string[];
+  dateStart: string;
+  dateEnd: string;
+  class: string;
+  type: string;
+  priority: string;
   description: string;
   location: string;
 }
@@ -39,12 +39,9 @@ async function fetchNotionPage(
   param: QueryDatabaseParameters
 ): Promise<Array<Task> | undefined> {
   try {
-    // Query the database
     const response = await notionClient.databases.query(param);
 
-    // Map over the results to extract the required properties
     const tasks = response.results.map((page) => {
-      // Ensure page is of type PageObjectResponse
       if (!('properties' in page)) {
         logger.error('Invalid page object');
         throw Error('Invalid page object');
@@ -55,32 +52,26 @@ async function fetchNotionPage(
       const status =
         (properties['Status'] as StatusPropertyItemObjectResponse).status
           ?.name || '';
+      const type =
+        (properties['Type'] as SelectPropertyItemObjectResponse).select?.name ||
+        '';
       const task =
         (properties['Task'] as TitleObjectResponse).title[0]?.plain_text || '';
-      const availableOnStart =
-        (properties['Available on'] as DatePropertyItemObjectResponse).date
-          ?.start || '';
-      const availableOnEnd =
-        (properties['Available on'] as DatePropertyItemObjectResponse).date
-          ?.end || '';
-      const dueDateStart =
-        (properties['Due date'] as DatePropertyItemObjectResponse).date
-          ?.start || '';
-      const dueDateEnd =
-        (properties['Due date'] as DatePropertyItemObjectResponse).date?.end ||
+      const dateStart =
+        (properties['Date'] as DatePropertyItemObjectResponse).date?.start ||
         '';
-      const tags =
+      const dateEnd =
+        (properties['Date'] as DatePropertyItemObjectResponse).date?.end || '';
+      const lva =
+        (properties['Class'] as SelectPropertyItemObjectResponse).select
+          ?.name || '';
+      const priority =
         (
-          properties['Tags'] as MultiSelectPropertyItemObjectResponse
-        ).multi_select
-          .map((tag) => tag.name)
-          .sort() || [];
-      // Extract description (rich text is also an array)
+          properties['Priority'] as SelectPropertyItemObjectResponse
+        ).select?.name?.toLowerCase() || '';
       const description =
         (properties['Description'] as unknown as RichTextObjectRespone)
           .rich_text[0]?.plain_text || '';
-
-      // Extract location (rich text is also an array)
       const location =
         (properties['Location'] as unknown as RichTextObjectRespone)
           .rich_text[0]?.plain_text || '';
@@ -89,11 +80,11 @@ async function fetchNotionPage(
         id: page.id?.split('-').join('') || '',
         status,
         task,
-        availableOnStart,
-        availableOnEnd,
-        dueDateStart,
-        dueDateEnd,
-        tags,
+        dateStart,
+        dateEnd,
+        class: lva,
+        type,
+        priority,
         description,
         location,
       };

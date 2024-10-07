@@ -1,7 +1,8 @@
 import { calendar_v3 } from '@googleapis/calendar';
 import { JWT } from 'google-auth-library';
+import _ from 'lodash';
 
-import logger from 'logger'; // Assuming you have a custom logger
+import logger from 'logger';
 
 // Define the structure for event input
 export interface EventInput {
@@ -15,6 +16,15 @@ export interface EventInput {
   attendees?: Array<{ email: string }>;
   location?: string;
   timezone?: string;
+  priority: string;
+}
+
+interface Reminders {
+  useDefault: boolean;
+  overrides: Array<{
+    method: string;
+    minutes: number;
+  }>;
 }
 
 // Define the interface for the service account key
@@ -38,9 +48,16 @@ export async function createOrUpdateCalendarEvent(
   event: EventInput // Event details to insert or update
 ): Promise<calendar_v3.Schema$Event | undefined> {
   const calendar = new calendar_v3.Calendar({ auth: authClient });
-  const { startDateTime, startDate, endDateTime, endDate, timezone, ...rest } =
-    event;
-  // Prepare the date fields based on input (all-day vs time-specific events)
+  const {
+    startDateTime,
+    startDate,
+    endDateTime,
+    endDate,
+    timezone,
+    priority,
+    ...rest
+  } = event;
+
   const date = startDateTime
     ? {
         start: {
@@ -65,6 +82,7 @@ export async function createOrUpdateCalendarEvent(
   const eventRequest: calendar_v3.Schema$Event = {
     ...rest,
     ...date,
+    reminders: getRemindersByPriority(priority),
   };
 
   try {
@@ -77,6 +95,7 @@ export async function createOrUpdateCalendarEvent(
           eventId: event.id,
         })
         .then((response) => response.data);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error.code !== 404) {
         // Log and throw error if it's not a 'not found' error
@@ -84,21 +103,35 @@ export async function createOrUpdateCalendarEvent(
         throw error;
       }
     }
-    if (existingEvent) {
-      // If the event exists, update it
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars
-      const { id, ...rest } = eventRequest;
-      const updateResponse = await calendar.events.update({
-        calendarId: calendarId,
-        eventId: event.id,
-        requestBody: rest,
-      });
 
-      if (updateResponse.status === 200 && updateResponse.data) {
-        logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
-        return updateResponse.data;
-      } else {
-        throw new Error('Failed to update event');
+    const fieldsToCompare = [
+      'summary',
+      'description',
+      'start',
+      'end',
+      'timezone',
+      'attendees',
+      'location',
+    ];
+
+    if (existingEvent) {
+      const fieldsUpdated: boolean = !_.isEqual(
+        _.pick(eventRequest, fieldsToCompare),
+        _.pick(existingEvent, fieldsToCompare)
+      );
+      if (fieldsUpdated) {
+        const updateResponse = await calendar.events.update({
+          calendarId: calendarId,
+          eventId: event.id,
+          requestBody: eventRequest,
+        });
+
+        if (updateResponse.status === 200 && updateResponse.data) {
+          logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
+          return updateResponse.data;
+        } else {
+          throw new Error('Failed to update event');
+        }
       }
     } else {
       // If the event does not exist, create a new one
@@ -114,10 +147,36 @@ export async function createOrUpdateCalendarEvent(
         throw new Error('Failed to create event');
       }
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error creating or updating event: ', error);
     throw error;
   }
+}
+
+function getRemindersByPriority(priority: string): Reminders {
+  const reminders = [];
+
+  // Push low priority reminders (7-day intervals)
+  if (priority === 'low' || priority === 'medium' || priority === 'high') {
+    reminders.push({ method: 'email', minutes: 14 * 24 * 60 }); // 14 days before
+  }
+
+  // Push medium priority reminders (2-day intervals)
+  if (priority === 'medium' || priority === 'high') {
+    reminders.push({ method: 'email', minutes: 6 * 24 * 60 }); // 7 days before
+  }
+
+  // Push high priority reminders (daily intervals)
+  if (priority === 'high') {
+    reminders.push({ method: 'email', minutes: 24 * 60 }); // 1 day before
+    reminders.push({ method: 'email', minutes: 48 * 60 }); // 2 days before
+    reminders.push({ method: 'email', minutes: 72 * 60 }); // 3 days before
+  }
+
+  return {
+    useDefault: false,
+    overrides: reminders,
+  };
 }
 
 export default createOrUpdateCalendarEvent;

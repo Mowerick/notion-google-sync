@@ -10,6 +10,7 @@
     "@googleapis/calendar": "^9.7.9",
     "@notionhq/client": "^2.2.15",
     "dotenv": "^16.4.5",
+    "lodash": "^4.17.21",
     "winston": "^3.14.2"
   },
   "scripts": {
@@ -23,6 +24,7 @@
     "**/*.{js,ts,tsx}": "eslint --fix"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.10",
     "@types/node": "^22.7.4",
     "@typescript-eslint/eslint-plugin": "^8.8.0",
     "@typescript-eslint/parser": "^8.8.0",

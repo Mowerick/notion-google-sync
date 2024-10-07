@@ -4,8 +4,7 @@ import fs from 'fs';
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
 
 import config from 'config';
-import {
-  createOrUpdateCalendarEvent,
+import createOrUpdateCalendarEvent, {
   EventInput,
   ServiceAccountKey,
 } from 'google';
@@ -13,13 +12,14 @@ import fetchNotionPage from 'notion';
 
 async function main() {
   const notionClient = new Client({ auth: config.notion.api.token });
-  const serviceAccountKey: ServiceAccountKey = JSON.parse(
+
+  const gogleServiceAccountKey: ServiceAccountKey = JSON.parse(
     fs.readFileSync(config.google.api.serviceAccountKey, 'utf-8')
   );
 
   const googleAuth = new JWT({
-    email: serviceAccountKey.client_email,
-    key: serviceAccountKey.private_key,
+    email: gogleServiceAccountKey.client_email,
+    key: gogleServiceAccountKey.private_key,
     scopes: ['https://www.googleapis.com/auth/calendar'],
   });
 
@@ -34,54 +34,36 @@ async function main() {
     },
     database_id: config.notion.pageId,
   };
+
   const pages = await fetchNotionPage(notionClient, databaseParam);
   pages?.forEach((page) => {
-    const tags = page.tags.length === 0 ? '' : page.tags?.join(' ') + ': ';
-    if (page.dueDateStart) {
-      const dueDateStart: string = page.dueDateEnd
-        ? new Date(page.dueDateStart).toISOString()
-        : new Date(page.dueDateStart).toISOString().split('T')[0];
+    const summary = [page.type, page.class, page.task]
+      .filter(Boolean)
+      .join(' ');
+    const description =
+      `Status: ${page.status}\n` +
+      `Priority: ${page.priority}\n` +
+      page.description;
+    if (page.dateStart) {
+      const dateStart: string = page.dateEnd
+        ? new Date(page.dateStart).toISOString()
+        : new Date(page.dateStart).toISOString().split('T')[0];
 
-      const dueDateEnd: string = page.dueDateEnd
-        ? new Date(page.dueDateEnd).toISOString()
-        : new Date(page.dueDateStart).toISOString().split('T')[0];
+      const dateEnd: string = page.dateEnd
+        ? new Date(page.dateEnd).toISOString()
+        : new Date(page.dateStart).toISOString().split('T')[0];
 
-      const date = page.dueDateEnd
-        ? { startDateTime: dueDateStart, endDateTime: dueDateEnd }
-        : { startDate: dueDateStart, endDate: dueDateEnd };
+      const date = page.dateEnd
+        ? { startDateTime: dateStart, endDateTime: dateEnd }
+        : { startDate: dateStart, endDate: dateEnd };
 
       const event: EventInput = {
         id: page.id,
-        summary: tags + page.task,
-        description: page.status
-          ? page.status + '\n' + page.description
-          : page.description,
+        summary,
+        description,
         ...date,
         location: page.location,
-      };
-      createOrUpdateCalendarEvent(googleAuth, googleCalendarId, event);
-    }
-
-    if (page.availableOnEnd) {
-      const availableDateStart: string = page.availableOnEnd
-        ? new Date(page.availableOnStart).toISOString()
-        : new Date(page.availableOnStart).toISOString().split('T')[0];
-
-      const availableDateEnd: string = page.availableOnEnd
-        ? new Date(page.availableOnEnd).toISOString()
-        : new Date(page.availableOnStart).toISOString().split('T')[0];
-
-      const date = page.availableOnEnd
-        ? { startDateTime: availableDateStart, endDateTime: availableDateEnd }
-        : { startDate: availableDateStart, endDate: availableDateEnd };
-      const event: EventInput = {
-        id: page.id,
-        summary: 'Available: ' + page.task,
-        description: page.status
-          ? page.status + '\n' + page.description
-          : page.description,
-        ...date,
-        location: page.location,
+        priority: page.priority,
       };
       createOrUpdateCalendarEvent(googleAuth, googleCalendarId, event);
     }
