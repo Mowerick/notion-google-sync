@@ -16,7 +16,8 @@
       "google": ["Google"],
       "notion": ["Notion"],
       "config": ["Utils/Config"],
-      "logger": ["Utils/Logger"]
+      "logger": ["Utils/Logger"],
+      "database": ["Database"]
     }
   },
   "ts-node": {

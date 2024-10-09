@@ -5,3 +5,4 @@ dist/
 *.log
 log/
 google_service_account_key.json
+database.sqlite

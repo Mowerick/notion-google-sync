@@ -41,116 +41,95 @@ export interface ServiceAccountKey {
   client_x509_cert_url: string;
 }
 
-// Function to create or update a calendar event
-export async function createOrUpdateCalendarEvent(
-  authClient: JWT, // Authenticated OAuth2 client
-  calendarId: string, // Google Calendar ID
-  event: EventInput // Event details to insert or update
-): Promise<calendar_v3.Schema$Event | undefined> {
-  const calendar = new calendar_v3.Calendar({ auth: authClient });
-  const {
-    startDateTime,
-    startDate,
-    endDateTime,
-    endDate,
-    timezone,
-    priority,
-    ...rest
-  } = event;
-
-  const date = startDateTime
-    ? {
-        start: {
-          dateTime: startDateTime,
-          timeZone: timezone || 'UTC',
-        },
-        end: {
-          dateTime: endDateTime,
-          timeZone: timezone || 'UTC',
-        },
-      }
-    : {
-        start: {
-          date: startDate,
-        },
-        end: {
-          date: endDate,
-        },
-      };
-
-  // Create the event request body based on input
-  const eventRequest: calendar_v3.Schema$Event = {
-    ...rest,
-    ...date,
-    reminders: getRemindersByPriority(priority),
-  };
+// Function to create a new calendar event
+export async function createCalendarEvent(
+  auth: JWT,
+  calendarId: string,
+  event: EventInput
+): Promise<void> {
+  const calendar = new calendar_v3.Calendar({ auth });
 
   try {
-    // Check if the event with the given ID exists in the calendar
-    let existingEvent: calendar_v3.Schema$Event | null = null;
-    try {
-      existingEvent = await calendar.events
-        .get({
-          calendarId: calendarId,
-          eventId: event.id,
-        })
-        .then((response) => response.data);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (error.code !== 404) {
-        // Log and throw error if it's not a 'not found' error
-        logger.error('Error checking for existing event: ', error);
-        throw error;
-      }
-    }
+    const createResponse = await calendar.events.insert({
+      calendarId: calendarId,
+      requestBody: {
+        ...convertNotionEventToCalendarEvent(event),
+        reminders: getRemindersByPriority(event.priority),
+      },
+    });
 
-    const fieldsToCompare = [
-      'summary',
-      'description',
-      'start',
-      'end',
-      'timezone',
-      'attendees',
-      'location',
-    ];
-
-    if (existingEvent) {
-      const fieldsUpdated: boolean = !_.isEqual(
-        _.pick(eventRequest, fieldsToCompare),
-        _.pick(existingEvent, fieldsToCompare)
-      );
-      if (fieldsUpdated) {
-        const updateResponse = await calendar.events.update({
-          calendarId: calendarId,
-          eventId: event.id,
-          requestBody: eventRequest,
-        });
-
-        if (updateResponse.status === 200 && updateResponse.data) {
-          logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
-          return updateResponse.data;
-        } else {
-          throw new Error('Failed to update event');
-        }
-      }
+    if (createResponse.status === 200 && createResponse.data) {
+      logger.info(`Event created: ${createResponse.data.htmlLink}`);
     } else {
-      // If the event does not exist, create a new one
-      const createResponse = await calendar.events.insert({
-        calendarId: calendarId,
-        requestBody: eventRequest,
-      });
-
-      if (createResponse.status === 200 && createResponse.data) {
-        logger.info(`Event created: ${createResponse.data.htmlLink}`);
-        return createResponse.data;
-      } else {
-        throw new Error('Failed to create event');
-      }
+      throw new Error('Failed to create event');
     }
   } catch (error) {
-    logger.error('Error creating or updating event: ', error);
+    logger.error('Error creating event: ', error);
     throw error;
   }
+}
+
+// Function to update an existing calendar event
+export async function updateCalendarEvent(
+  auth: JWT,
+  calendarId: string,
+  event: EventInput,
+  existingEvent: calendar_v3.Schema$Event
+): Promise<void> {
+  const calendar = new calendar_v3.Calendar({ auth });
+  const updatedEvent: calendar_v3.Schema$Event =
+    convertNotionEventToCalendarEvent(event);
+  const fieldsToCompare = [
+    'summary',
+    'description',
+    'start',
+    'end',
+    'location',
+  ];
+
+  const fieldsUpdated: boolean = !_.isEqual(
+    _.pick(updatedEvent, fieldsToCompare),
+    _.pick(existingEvent, fieldsToCompare)
+  );
+
+  if (!fieldsUpdated) return;
+
+  try {
+    const updateResponse = await calendar.events.update({
+      calendarId: calendarId,
+      eventId: event.id,
+      requestBody: updatedEvent,
+    });
+
+    if (updateResponse.status === 200 && updateResponse.data) {
+      logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
+    } else {
+      throw new Error('Failed to update event');
+    }
+  } catch (error) {
+    logger.error('Error updating event: ', error);
+    throw error;
+  }
+}
+
+export async function fetchGoogleCalendarEvents(
+  auth: JWT,
+  calendarId: string
+): Promise<calendar_v3.Schema$Event[]> {
+  const calendar = new calendar_v3.Calendar({ auth });
+
+  const now = new Date().toISOString();
+
+  const res = await calendar.events.list({
+    calendarId,
+    timeMin: now,
+    singleEvents: true,
+    orderBy: 'startTime',
+  });
+
+  const events = res.data.items || [];
+
+  return events;
 }
 
 function getRemindersByPriority(priority: string): Reminders {
@@ -179,4 +158,36 @@ function getRemindersByPriority(priority: string): Reminders {
   };
 }
 
-export default createOrUpdateCalendarEvent;
+function convertNotionEventToCalendarEvent(
+  event: EventInput
+): calendar_v3.Schema$Event {
+  const { startDateTime, startDate, endDateTime, endDate, timezone, ...rest } =
+    event;
+
+  const date = startDateTime
+    ? {
+        start: {
+          dateTime: startDateTime,
+          timeZone: timezone || 'UTC',
+        },
+        end: {
+          dateTime: endDateTime,
+          timeZone: timezone || 'UTC',
+        },
+      }
+    : {
+        start: {
+          date: startDate,
+        },
+        end: {
+          date: endDate,
+        },
+      };
+
+  const eventRequest: calendar_v3.Schema$Event = {
+    ...rest,
+    ...date,
+  };
+
+  return eventRequest;
+}

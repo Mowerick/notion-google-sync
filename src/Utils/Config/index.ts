@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+
+import { ServiceAccountKey } from 'google';
 dotenv.config();
 
 interface Config {
@@ -7,7 +10,7 @@ interface Config {
       clientId: string;
       clientSecret: string;
       redirectUri: string;
-      serviceAccountKey: string;
+      serviceAccountKey: ServiceAccountKey | undefined;
     };
     calendarId: string;
   };
@@ -29,7 +32,10 @@ const config: Config = {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       redirectUri: process.env.GOOGLE_REDIRECT_URI || '',
-      serviceAccountKey: process.env.GOOGLE_SERVICE_KEY_FILE || '',
+      serviceAccountKey:
+        JSON.parse(
+          fs.readFileSync(String(process.env.GOOGLE_SERVICE_KEY_FILE), 'utf-8')
+        ) || {},
     },
     calendarId: process.env.GOOGLE_CALENDAR_ID || '',
   },
