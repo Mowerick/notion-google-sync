@@ -1,7 +1,9 @@
 import { calendar_v3 } from '@googleapis/calendar';
 import { Client } from '@notionhq/client';
 import { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoints';
+import fs from 'fs';
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
+import nodemailer from 'nodemailer';
 
 import config from 'config';
 import sequelize, {
@@ -29,6 +31,20 @@ const GOOGLE_CALENDAR_ID = config.google.calendarId;
 
 const NOTION_PAGE_ID = config.notion.pageId;
 
+const MAIL_SERVICE = nodemailer.createTransport({
+  service: config.mailer.service,
+  auth: {
+    user: config.mailer.auth.user,
+    pass: config.mailer.auth.password,
+  },
+});
+
+const MAIL_OPTIONS = {
+  from: `"Notion-google-sync" <${config.mailer.from}>`,
+  to: config.mailer.to,
+  subject: config.mailer.subject,
+  text: `Please find the attached log from ${new Date().toDateString()}`,
+};
 async function main() {
   await sequelize.sync();
   const deletedRowsCount = await destroyOldEvents();
@@ -74,6 +90,22 @@ async function main() {
         page.priority,
         event
       );
+  });
+
+  const filename = config.logger.filename;
+  const path = config.logger.path;
+  const logFilePath =
+    (path.endsWith('/') ? path : path + '/') +
+    (filename.startsWith('/') ? filename.substring(1) : filename);
+  const content = await fs.readFileSync(logFilePath, 'utf-8');
+  MAIL_SERVICE.sendMail({
+    ...MAIL_OPTIONS,
+    attachments: [
+      {
+        filename: config.logger.filename,
+        content,
+      },
+    ],
   });
 }
 

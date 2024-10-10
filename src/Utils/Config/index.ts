@@ -23,6 +23,17 @@ interface Config {
   logger: {
     path: string;
     filename: string;
+    sequelizeLogging: boolean;
+  };
+  mailer: {
+    from: string;
+    to: string;
+    subject: string;
+    service: string;
+    auth: {
+      user: string;
+      password: string;
+    };
   };
 }
 
@@ -48,7 +59,23 @@ const config: Config = {
   logger: {
     path: process.env.LOG_PATH || '',
     filename: process.env.LOG_FILENAME || 'script.log',
+    sequelizeLogging:
+      parseBoolean(process.env.LOG_SEQUELIZE_ENABLED || '') || false,
+  },
+  mailer: {
+    service: process.env.MAIL_SERVICE || 'gmail',
+    from: process.env.MAIL_FROM || process.env.MAIL_USER || '',
+    to: process.env.MAIL_TO || process.env.MAIL_USER || '',
+    subject: process.env.MAIL_SUBJECT || 'Report Notion-google-sync',
+    auth: {
+      user: process.env.MAIL_USER || '',
+      password: process.env.MAIL_PASSWORD || '',
+    },
   },
 };
+
+function parseBoolean(str: string): boolean {
+  return str.toLowerCase() === 'true' || str.toLowerCase() == '1';
+}
 
 export default config;

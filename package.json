@@ -9,8 +9,10 @@
   "dependencies": {
     "@googleapis/calendar": "^9.7.9",
     "@notionhq/client": "^2.2.15",
+    "@types/nodemailer": "^6.4.16",
     "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
+    "nodemailer": "^6.9.15",
     "sequelize": "^6.37.4",
     "sqlite3": "^5.1.7",
     "winston": "^3.14.2"

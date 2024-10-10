@@ -1,9 +1,12 @@
 import { calendar_v3 } from '@googleapis/calendar/build/v3';
 import { DataTypes, Model, Op, Sequelize } from 'sequelize';
 
+import config from 'config';
+
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: './database.sqlite',
+  logging: config.logger.sequelizeLogging,
 });
 
 export default sequelize;
