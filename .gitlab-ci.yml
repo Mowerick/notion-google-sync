@@ -1,0 +1,35 @@
+image: node:20.10.0
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  script:
+    - yarn install --frozen-lockfile
+    - yarn build
+  artifacts:
+    paths:
+      - dist/
+      - node_modules/
+    expire_in: 1 hour
+  only:
+    - /^v\d+\.\d+\.\d+$/
+
+deploy:
+  stage: deploy
+  dependencies:
+    - build
+  only:
+    - /^v\d+\.\d+\.\d+$/
+  before_script:
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+  script:
+    # Deploy node_modules to the server
+    - scp -r node_modules $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
+    # Deploy the contents of dist/ to the server
+    - scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
