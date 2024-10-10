@@ -9,13 +9,13 @@ import {
 
 import logger from 'logger';
 
-interface Task {
+export interface Task {
   id: string;
   status: string;
   task: string;
   dateStart: string;
   dateEnd: string;
-  class: string;
+  className: string;
   type: string;
   priority: string;
   description: string;
@@ -62,7 +62,7 @@ async function fetchNotionPage(
         '';
       const dateEnd =
         (properties['Date'] as DatePropertyItemObjectResponse).date?.end || '';
-      const lva =
+      const className =
         (properties['Class'] as SelectPropertyItemObjectResponse).select
           ?.name || '';
       const priority =
@@ -82,7 +82,7 @@ async function fetchNotionPage(
         task,
         dateStart,
         dateEnd,
-        class: lva,
+        className,
         type,
         priority,
         description,

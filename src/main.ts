@@ -1,3 +1,4 @@
+import { calendar_v3 } from '@googleapis/calendar';
 import { Client } from '@notionhq/client';
 import { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoints';
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
@@ -10,12 +11,11 @@ import sequelize, {
 } from 'database';
 import {
   createCalendarEvent,
-  EventInput,
   fetchGoogleCalendarEvents,
   updateCalendarEvent,
 } from 'google';
 import logger from 'logger';
-import fetchNotionPage from 'notion';
+import fetchNotionPage, { Task } from 'notion';
 
 const GOOGLE_AUTH = new JWT({
   email: config.google.api.serviceAccountKey?.client_email,
@@ -52,45 +52,88 @@ async function main() {
 
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
   pages?.forEach(async (page) => {
-    const summary = [page.type, page.class, page.task]
-      .filter(Boolean)
-      .join(' ');
-    const description =
-      `Status: ${page.status}\n` +
-      `Priority: ${page.priority}` +
-      (page.description ? '\n' + page.description : '');
-    if (page.dateStart) {
-      const dateStart: string = page.dateEnd
-        ? new Date(page.dateStart).toISOString()
-        : new Date(page.dateStart).toISOString().split('T')[0];
-
-      const dateEnd: string = page.dateEnd
-        ? new Date(page.dateEnd).toISOString()
-        : new Date(page.dateStart).toISOString().split('T')[0];
-
-      const date = page.dateEnd
-        ? { startDateTime: dateStart, endDateTime: dateEnd }
-        : { startDate: dateStart, endDate: dateEnd };
-
-      const event: EventInput = {
-        id: page.id,
-        summary,
-        description,
-        ...date,
-        location: page.location,
-        priority: page.priority,
-      };
-      const existingEvent = await getEvent(page.id);
-      if (existingEvent)
-        await updateCalendarEvent(
-          GOOGLE_AUTH,
-          GOOGLE_CALENDAR_ID,
-          event,
-          existingEvent
-        );
-      else await createCalendarEvent(GOOGLE_AUTH, GOOGLE_CALENDAR_ID, event);
+    if (!page.dateStart) {
+      logger.error(`Page: ${page.task} got no Date, creation cancelled`);
+      return;
     }
+    const event: calendar_v3.Schema$Event =
+      convertNotionTaskToCalendarEvent(page);
+    const existingEvent = await getEvent(page.id);
+    if (existingEvent)
+      await updateCalendarEvent(
+        GOOGLE_AUTH,
+        GOOGLE_CALENDAR_ID,
+        page.priority,
+        event,
+        existingEvent
+      );
+    else
+      await createCalendarEvent(
+        GOOGLE_AUTH,
+        GOOGLE_CALENDAR_ID,
+        page.priority,
+        event
+      );
   });
+}
+
+function convertNotionTaskToCalendarEvent(
+  page: Task
+): calendar_v3.Schema$Event {
+  const {
+    dateEnd,
+    dateStart,
+    description,
+    priority,
+    status,
+    className,
+    task,
+    type,
+    id,
+    location,
+  } = page;
+
+  const summary = [type, className, task].filter(Boolean).join(' ');
+
+  const eventDescription =
+    `Status: ${status}\n` +
+    `Priority: ${priority}` +
+    (description ? '\n' + description : '');
+
+  const formatDate = (dateStr: string, includeTime: boolean) => {
+    const isoString = new Date(dateStr).toISOString();
+    return includeTime ? isoString : isoString.split('T')[0];
+  };
+
+  const date = dateEnd
+    ? {
+        start: {
+          dateTime: formatDate(dateStart, true),
+          timeZone: 'UTC',
+        },
+        end: {
+          dateTime: formatDate(dateEnd, true),
+          timeZone: 'UTC',
+        },
+      }
+    : {
+        start: {
+          date: formatDate(dateStart, false),
+        },
+        end: {
+          date: formatDate(dateStart, false),
+        },
+      };
+
+  const eventRequest: calendar_v3.Schema$Event = {
+    id,
+    location,
+    description: eventDescription,
+    summary,
+    ...date,
+  };
+
+  return eventRequest;
 }
 
 main();

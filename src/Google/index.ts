@@ -4,21 +4,6 @@ import _ from 'lodash';
 
 import logger from 'logger';
 
-// Define the structure for event input
-export interface EventInput {
-  id: string;
-  summary: string;
-  description?: string;
-  startDateTime?: string; // ISO format
-  endDateTime?: string; // ISO format
-  startDate?: string;
-  endDate?: string;
-  attendees?: Array<{ email: string }>;
-  location?: string;
-  timezone?: string;
-  priority: string;
-}
-
 interface Reminders {
   useDefault: boolean;
   overrides: Array<{
@@ -45,7 +30,8 @@ export interface ServiceAccountKey {
 export async function createCalendarEvent(
   auth: JWT,
   calendarId: string,
-  event: EventInput
+  priority: string,
+  event: calendar_v3.Schema$Event
 ): Promise<void> {
   const calendar = new calendar_v3.Calendar({ auth });
 
@@ -53,8 +39,8 @@ export async function createCalendarEvent(
     const createResponse = await calendar.events.insert({
       calendarId: calendarId,
       requestBody: {
-        ...convertNotionEventToCalendarEvent(event),
-        reminders: getRemindersByPriority(event.priority),
+        ...event,
+        reminders: getRemindersByPriority(priority),
       },
     });
 
@@ -73,12 +59,12 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
   auth: JWT,
   calendarId: string,
-  event: EventInput,
+  priority: string,
+  event: calendar_v3.Schema$Event,
   existingEvent: calendar_v3.Schema$Event
 ): Promise<void> {
+  const { id, ...spreadedEvent } = event;
   const calendar = new calendar_v3.Calendar({ auth });
-  const updatedEvent: calendar_v3.Schema$Event =
-    convertNotionEventToCalendarEvent(event);
   const fieldsToCompare = [
     'summary',
     'description',
@@ -88,17 +74,25 @@ export async function updateCalendarEvent(
   ];
 
   const fieldsUpdated: boolean = !_.isEqual(
-    _.pick(updatedEvent, fieldsToCompare),
+    _.pick(event, fieldsToCompare),
     _.pick(existingEvent, fieldsToCompare)
   );
 
-  if (!fieldsUpdated) return;
+  if (!fieldsUpdated) {
+    logger.info(
+      `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : existingEvent.start?.dateTime} `
+    );
+    return;
+  }
 
   try {
     const updateResponse = await calendar.events.update({
-      calendarId: calendarId,
-      eventId: event.id,
-      requestBody: updatedEvent,
+      calendarId,
+      eventId: id ? id : undefined, // need this ternary operator otherwise update wont take it
+      requestBody: {
+        ...spreadedEvent,
+        reminders: getRemindersByPriority(priority),
+      },
     });
 
     if (updateResponse.status === 200 && updateResponse.data) {
@@ -156,38 +150,4 @@ function getRemindersByPriority(priority: string): Reminders {
     useDefault: false,
     overrides: reminders,
   };
-}
-
-function convertNotionEventToCalendarEvent(
-  event: EventInput
-): calendar_v3.Schema$Event {
-  const { startDateTime, startDate, endDateTime, endDate, timezone, ...rest } =
-    event;
-
-  const date = startDateTime
-    ? {
-        start: {
-          dateTime: startDateTime,
-          timeZone: timezone || 'UTC',
-        },
-        end: {
-          dateTime: endDateTime,
-          timeZone: timezone || 'UTC',
-        },
-      }
-    : {
-        start: {
-          date: startDate,
-        },
-        end: {
-          date: endDate,
-        },
-      };
-
-  const eventRequest: calendar_v3.Schema$Event = {
-    ...rest,
-    ...date,
-  };
-
-  return eventRequest;
 }
