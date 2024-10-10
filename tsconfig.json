@@ -24,6 +24,6 @@
     "transpileOnly": true,
     "require": ["typescript-transform-paths/register"]
   },
-  "include": ["src/**/*.ts", "src/**/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.{ts,tsx}", "src/**/**/*.{ts,tsx}"],
+  "exclude": ["node_modules/", "dist/"]
 }
