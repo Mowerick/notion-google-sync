@@ -19,5 +19,11 @@
   },
   "[dotenv]": {
     "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "yaml.schemas": {
+    "https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json": "file:///home/oliver/private_projects/notion-google-sync/gitlab-ci.yml"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
   } // set as "true" to run 'prettier' last not first
 }

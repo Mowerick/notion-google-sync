@@ -4,5 +4,5 @@ dist/
 .tsbuildinfo
 *.log
 log/
-google_service_account_key.json
+google_service_account.key
 database.sqlite
