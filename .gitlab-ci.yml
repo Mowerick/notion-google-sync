@@ -32,9 +32,9 @@ deploy:
     - eval $(ssh-agent -s)
     - chmod 400 "$SSH_PRIVATE_KEY"
     - ssh-add "$SSH_PRIVATE_KEY"
-    - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
   script:
     # Deploy node_modules to the server
     - scp -r node_modules $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
