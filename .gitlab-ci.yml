@@ -16,6 +16,8 @@ build:
     expire_in: 1 hour
   only:
     - /^v\d+\.\d+\.\d+$/
+  tags:
+    - node
 
 deploy:
   stage: deploy
@@ -33,3 +35,5 @@ deploy:
     - scp -r node_modules $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
     # Deploy the contents of dist/ to the server
     - scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
+  tags:
+    - node
