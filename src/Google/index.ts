@@ -45,12 +45,12 @@ export async function createCalendarEvent(
     });
 
     if (createResponse.status === 200 && createResponse.data) {
-      logger.info(`Event created: ${createResponse.data.htmlLink}`);
+      await logger.info(`Event created: ${createResponse.data.htmlLink}`);
     } else {
       throw new Error('Failed to create event');
     }
   } catch (error) {
-    logger.error('Error creating event: ', error);
+    await logger.error('Error creating event: ', error);
     throw error;
   }
 }
@@ -79,8 +79,8 @@ export async function updateCalendarEvent(
   );
 
   if (!fieldsUpdated) {
-    logger.info(
-      `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : existingEvent.start?.dateTime} `
+    await logger.info(
+      `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : existingEvent.start?.dateTime}`
     );
     return;
   }
@@ -96,12 +96,12 @@ export async function updateCalendarEvent(
     });
 
     if (updateResponse.status === 200 && updateResponse.data) {
-      logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
+      await logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
     } else {
       throw new Error('Failed to update event');
     }
   } catch (error) {
-    logger.error('Error updating event: ', error);
+    await logger.error('Error updating event: ', error);
     throw error;
   }
 }

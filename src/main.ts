@@ -48,7 +48,7 @@ const MAIL_OPTIONS = {
 async function main() {
   await sequelize.sync();
   const deletedRowsCount = await destroyOldEvents();
-  logger.info('Deleted ' + deletedRowsCount + ' Rows');
+  await logger.info('Deleted ' + deletedRowsCount + ' Rows');
   const databaseParam: QueryDatabaseParameters = {
     filter: {
       property: 'Status',
@@ -67,15 +67,14 @@ async function main() {
   if (calendarEvents) await saveEventsToDatabase(calendarEvents);
 
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
-  pages?.forEach(async (page) => {
+  for (const page of pages || []) {
     if (!page.dateStart) {
-      logger.error(`Page: ${page.task} got no Date, creation cancelled`);
-      return;
+      await logger.error(`Page: ${page.task} got no Date, creation cancelled`);
+      continue; // Use continue instead of return to proceed to the next iteration
     }
-    const event: calendar_v3.Schema$Event =
-      convertNotionTaskToCalendarEvent(page);
+    const event = convertNotionTaskToCalendarEvent(page);
     const existingEvent = await getEvent(page.id);
-    if (existingEvent)
+    if (existingEvent) {
       await updateCalendarEvent(
         GOOGLE_AUTH,
         GOOGLE_CALENDAR_ID,
@@ -83,14 +82,15 @@ async function main() {
         event,
         existingEvent
       );
-    else
+    } else {
       await createCalendarEvent(
         GOOGLE_AUTH,
         GOOGLE_CALENDAR_ID,
         page.priority,
         event
       );
-  });
+    }
+  }
 
   const filename = config.logger.filename;
   const path = config.logger.path;

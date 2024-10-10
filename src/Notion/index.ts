@@ -41,58 +41,66 @@ async function fetchNotionPage(
   try {
     const response = await notionClient.databases.query(param);
 
-    const tasks = response.results.map((page) => {
-      if (!('properties' in page)) {
-        logger.error('Invalid page object');
-        throw Error('Invalid page object');
-      }
+    const tasks = await Promise.all(
+      response.results.map(async (page) => {
+        if (!('properties' in page)) {
+          await logger.error('Invalid page object');
+          throw Error('Invalid page object');
+        }
 
-      const properties = page.properties;
+        const properties = page.properties;
 
-      const status =
-        (properties['Status'] as StatusPropertyItemObjectResponse).status
-          ?.name || '';
-      const type =
-        (properties['Type'] as SelectPropertyItemObjectResponse).select?.name ||
-        '';
-      const task =
-        (properties['Task'] as TitleObjectResponse).title[0]?.plain_text || '';
-      const dateStart =
-        (properties['Date'] as DatePropertyItemObjectResponse).date?.start ||
-        '';
-      const dateEnd =
-        (properties['Date'] as DatePropertyItemObjectResponse).date?.end || '';
-      const className =
-        (properties['Class'] as SelectPropertyItemObjectResponse).select
-          ?.name || '';
-      const priority =
-        (
-          properties['Priority'] as SelectPropertyItemObjectResponse
-        ).select?.name?.toLowerCase() || '';
-      const description =
-        (properties['Description'] as unknown as RichTextObjectRespone)
-          .rich_text[0]?.plain_text || '';
-      const location =
-        (properties['Location'] as unknown as RichTextObjectRespone)
-          .rich_text[0]?.plain_text || '';
+        const status =
+          (properties['Status'] as StatusPropertyItemObjectResponse).status
+            ?.name || '';
+        const type =
+          (properties['Type'] as SelectPropertyItemObjectResponse).select
+            ?.name || '';
+        const task =
+          (properties['Task'] as TitleObjectResponse).title[0]?.plain_text ||
+          '';
+        const dateStart =
+          (properties['Date'] as DatePropertyItemObjectResponse).date?.start ||
+          '';
+        const dateEnd =
+          (properties['Date'] as DatePropertyItemObjectResponse).date?.end ||
+          '';
+        const className =
+          (properties['Class'] as SelectPropertyItemObjectResponse).select
+            ?.name || '';
+        const priority =
+          (
+            properties['Priority'] as SelectPropertyItemObjectResponse
+          ).select?.name?.toLowerCase() || '';
+        const description =
+          (properties['Description'] as unknown as RichTextObjectRespone)
+            .rich_text[0]?.plain_text || '';
+        const location =
+          (properties['Location'] as unknown as RichTextObjectRespone)
+            .rich_text[0]?.plain_text || '';
 
-      return {
-        id: page.id?.split('-').join('') || '',
-        status,
-        task,
-        dateStart,
-        dateEnd,
-        className,
-        type,
-        priority,
-        description,
-        location,
-      };
-    });
-
+        return {
+          id: page.id?.split('-').join('') || '',
+          status,
+          task,
+          dateStart,
+          dateEnd,
+          className,
+          type,
+          priority,
+          description,
+          location,
+        };
+      })
+    );
+    const logMsg =
+      tasks.length === 1
+        ? 'Process 1 notion task'
+        : `Processed all ${tasks.length} notion tasks`;
+    await logger.info(logMsg);
     return tasks;
   } catch (error) {
-    logger.error(error);
+    await logger.error(error);
     return undefined;
   }
 }

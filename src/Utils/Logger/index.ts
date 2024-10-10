@@ -14,12 +14,13 @@ if (path) fs.mkdirSync(path, { recursive: true });
 fs.writeFileSync(logFilePath, '', 'utf-8');
 
 const now = new Date();
+const logFile = new winston.transports.File({ filename: logFilePath });
 const logger: winston.Logger = winston.createLogger({
   level: 'info',
   format: winston.format.printf(({ level, message }) => {
     return `${now.toLocaleDateString()} ${now.toLocaleTimeString()} [${level.toUpperCase()}] ${message}`;
   }),
-  transports: [new winston.transports.File({ filename: logFilePath })],
+  transports: [logFile],
 });
 
 export default logger;
