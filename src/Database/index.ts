@@ -38,6 +38,42 @@ export async function saveEventsToDatabase(
   }
 }
 
+export async function updateEventInDatabase(
+  event: calendar_v3.Schema$Event
+): Promise<void> {
+  const date = event.start?.dateTime
+    ? {
+        start: event.start?.dateTime,
+        end: event.end?.dateTime,
+        allDay: false,
+      }
+    : {
+        start: event.start?.date,
+        end: event.end?.date,
+        allDay: true,
+      };
+
+  const [existingEvent, created] = await Event.findOrCreate({
+    where: { id: event.id },
+    defaults: {
+      summary: event.summary,
+      description: event.description,
+      location: event.location,
+      ...date,
+    },
+  });
+
+  if (!created) {
+    // If the event already exists, update the event's details
+    await existingEvent.update({
+      summary: event.summary,
+      description: event.description,
+      location: event.location,
+      ...date,
+    });
+  }
+}
+
 export async function destroyOldEvents(): Promise<number> {
   const result = await Event.destroy({
     where: {
@@ -49,6 +85,7 @@ export async function destroyOldEvents(): Promise<number> {
 
   return result;
 }
+
 export async function getEvent(
   eventId: string
 ): Promise<calendar_v3.Schema$Event | null> {

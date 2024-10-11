@@ -2,6 +2,7 @@ import { calendar_v3 } from '@googleapis/calendar';
 import { JWT } from 'google-auth-library';
 import _ from 'lodash';
 
+import { updateEventInDatabase } from 'database';
 import logger from 'logger';
 
 interface Reminders {
@@ -96,6 +97,7 @@ export async function updateCalendarEvent(
     });
 
     if (updateResponse.status === 200 && updateResponse.data) {
+      await updateEventInDatabase(event);
       await logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
     } else {
       throw new Error('Failed to update event');
