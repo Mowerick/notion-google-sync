@@ -34,17 +34,63 @@ interface RichTextObjectRespone {
   id: string;
 }
 
+/**
+ * Fetches tasks from a Notion database based on the provided query parameters.
+ *
+ * This function retrieves tasks from the Notion database using the given `QueryDatabaseParameters`.
+ * It extracts relevant properties such as status, task name, start/end dates, class name, type, priority,
+ * description, and location for each task. The tasks are returned as an array of `Task` objects.
+ * If an error occurs during the fetch or processing, it logs the error and returns `undefined`.
+ *
+ * @async
+ * @function fetchNotionPage
+ * @param {Client} notionClient - An instance of the Notion Client SDK used to query the database.
+ * @param {QueryDatabaseParameters} param - The parameters used to query the Notion database, such as the database ID and filters.
+ * @returns {Promise<Array<Task> | undefined>} A promise that resolves to an array of Task objects, or `undefined` if an error occurs.
+ *
+ * @typedef {Object} Task
+ * @property {string} id - The unique identifier of the task in Notion.
+ * @property {string} status - The current status of the task (e.g., "Not Started", "In Progress", "Done").
+ * @property {string} task - The title or name of the task.
+ * @property {string} dateStart - The start date of the task (from the "Date" property).
+ * @property {string} dateEnd - The end date of the task (from the "Date" property).
+ * @property {string} className - The class or category associated with the task (from the "Class" property).
+ * @property {string} type - The type of task (from the "Type" property, such as "Homework", "Exam").
+ * @property {string} priority - The priority of the task (e.g., "high", "medium", "low").
+ * @property {string} description - A brief description of the task (from the "Description" property).
+ * @property {string} location - The location associated with the task, if any (from the "Location" property).
+ *
+ * @example
+ * const notionClient = new Client({ auth: process.env.NOTION_API_KEY });
+ * const queryParams = {
+ *   database_id: 'YOUR_DATABASE_ID',
+ *   filter: {
+ *     property: 'Status',
+ *     select: {
+ *       equals: 'Not Started',
+ *     },
+ *   },
+ * };
+ *
+ * fetchNotionPage(notionClient, queryParams)
+ *   .then(tasks => {
+ *     if (tasks) {
+ *       tasks.forEach(task => console.log(task.task));
+ *     }
+ *   })
+ *   .catch(error => console.error(error));
+ */
 async function fetchNotionPage(
   notionClient: Client,
   param: QueryDatabaseParameters
-): Promise<Array<Task> | undefined> {
+): Promise<Array<Task>> {
   try {
     const response = await notionClient.databases.query(param);
 
     const tasks = await Promise.all(
       response.results.map(async (page) => {
         if (!('properties' in page)) {
-          await logger.error('Invalid page object');
+          logger.error('Invalid page object');
           throw Error('Invalid page object');
         }
 
@@ -97,12 +143,61 @@ async function fetchNotionPage(
       tasks.length === 1
         ? 'Process 1 notion task'
         : `Processed all ${tasks.length} notion tasks`;
-    await logger.info(logMsg);
+    logger.info(logMsg);
     return tasks;
   } catch (error) {
-    await logger.error(error);
-    return undefined;
+    logger.error(error);
+    return [];
   }
+}
+
+/**
+ * Archives tasks that are marked as "Done" and are older than 7 days.
+ * @param tasks - Array of Task objects.
+ * @param notionClient - Notion client instance to update tasks.
+ * @returns void
+ */
+export async function archiveOldTasks(
+  tasks: Array<Task>,
+  notionClient: Client
+): Promise<void> {
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+  const now = new Date();
+
+  await Promise.all(
+    tasks.map(async (task) => {
+      if (task.status === 'Done') {
+        const date = task.dateEnd
+          ? new Date(task.dateEnd)
+          : new Date(task.dateStart);
+        const timeDiff = now.getTime() - date.getTime();
+        if (timeDiff >= SEVEN_DAYS_MS) {
+          // Update task status to "Archived" in Notion
+          try {
+            await notionClient.pages.update({
+              page_id: task.id,
+              properties: {
+                Status: {
+                  status: {
+                    name: 'Archived',
+                  },
+                },
+              },
+            });
+
+            task.status = 'Archived'; // Update local task status
+            logger.info(
+              `Task with ID: ${task.id} and title: "${task.task}" has been archived in Notion.`
+            );
+          } catch (error) {
+            logger.error(
+              `Failed to archive task with ID: ${task.id}. Error: ${error}`
+            );
+          }
+        }
+      }
+    })
+  );
 }
 
 export default fetchNotionPage;

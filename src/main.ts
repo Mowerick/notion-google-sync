@@ -1,4 +1,3 @@
-import { calendar_v3 } from '@googleapis/calendar';
 import { Client } from '@notionhq/client';
 import { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoints';
 import fs from 'fs';
@@ -17,7 +16,8 @@ import {
   updateCalendarEvent,
 } from 'google';
 import logger from 'logger';
-import fetchNotionPage, { Task } from 'notion';
+import fetchNotionPage, { archiveOldTasks } from 'notion';
+import convertNotionTaskToCalendarEvent from 'utils';
 
 const GOOGLE_AUTH = new JWT({
   email: config.google.api.serviceAccountKey?.client_email,
@@ -48,7 +48,7 @@ const MAIL_OPTIONS = {
 async function main() {
   await sequelize.sync();
   const deletedRowsCount = await destroyOldEvents();
-  await logger.info('Deleted ' + deletedRowsCount + ' Rows');
+  logger.info('Deleted ' + deletedRowsCount + ' Rows');
   const databaseParam: QueryDatabaseParameters = {
     filter: {
       property: 'Status',
@@ -67,9 +67,10 @@ async function main() {
   if (calendarEvents) await saveEventsToDatabase(calendarEvents);
 
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
+  await archiveOldTasks(pages, NOTION_CLIENT);
   for (const page of pages || []) {
     if (!page.dateStart) {
-      await logger.error(`Page: ${page.task} got no Date, creation cancelled`);
+      logger.error(`Page: ${page.task} got no Date, creation cancelled`);
       continue; // Use continue instead of return to proceed to the next iteration
     }
     const event = convertNotionTaskToCalendarEvent(page);
@@ -97,7 +98,7 @@ async function main() {
   const logFilePath =
     (path.endsWith('/') ? path : path + '/') +
     (filename.startsWith('/') ? filename.substring(1) : filename);
-  const content = await fs.readFileSync(logFilePath, 'utf-8');
+  const content = fs.readFileSync(logFilePath, 'utf-8');
   MAIL_SERVICE.sendMail({
     ...MAIL_OPTIONS,
     attachments: [
@@ -107,65 +108,6 @@ async function main() {
       },
     ],
   });
-}
-
-function convertNotionTaskToCalendarEvent(
-  page: Task
-): calendar_v3.Schema$Event {
-  const {
-    dateEnd,
-    dateStart,
-    description,
-    priority,
-    status,
-    className,
-    task,
-    type,
-    id,
-    location,
-  } = page;
-
-  const summary = [type, className, task].filter(Boolean).join(' ');
-
-  const eventDescription =
-    `Status: ${status}\n` +
-    `Priority: ${priority}` +
-    (description ? '\n' + description : '');
-
-  const formatDate = (dateStr: string, includeTime: boolean) => {
-    const isoString = new Date(dateStr).toISOString();
-    return includeTime ? isoString : isoString.split('T')[0];
-  };
-
-  const date = dateEnd
-    ? {
-        start: {
-          dateTime: formatDate(dateStart, true),
-          timeZone: 'UTC',
-        },
-        end: {
-          dateTime: formatDate(dateEnd, true),
-          timeZone: 'UTC',
-        },
-      }
-    : {
-        start: {
-          date: formatDate(dateStart, false),
-        },
-        end: {
-          date: formatDate(dateStart, false),
-        },
-      };
-
-  const eventRequest: calendar_v3.Schema$Event = {
-    id,
-    location,
-    description: eventDescription,
-    summary,
-    ...date,
-  };
-
-  return eventRequest;
 }
 
 main();

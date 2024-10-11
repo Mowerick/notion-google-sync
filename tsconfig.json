@@ -17,7 +17,8 @@
       "notion": ["Notion"],
       "config": ["Utils/Config"],
       "logger": ["Utils/Logger"],
-      "database": ["Database"]
+      "database": ["Database"],
+      "utils": ["Utils/"]
     }
   },
   "ts-node": {

@@ -27,7 +27,38 @@ export interface ServiceAccountKey {
   client_x509_cert_url: string;
 }
 
-// Function to create a new calendar event
+/**
+ * Creates a new event in Google Calendar based on the provided event details.
+ *
+ * @async
+ * @function createCalendarEvent
+ * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
+ * @param {string} calendarId - The ID of the Google Calendar where the event will be created.
+ * @param {string} priority - The priority of the event (e.g., 'low', 'medium', 'high'), which determines the reminder settings.
+ * @param {calendar_v3.Schema$Event} event - The event object containing details like summary, description, start, end, etc.
+ * @returns {Promise<void>} A promise that resolves when the event is successfully created, or rejects if there is an error.
+ *
+ * @throws Will throw an error if the event creation fails.
+ *
+ * @example
+ * const auth = new JWT({
+ *   email: client_email,
+ *   key: private_key,
+ *   scopes: ['https://www.googleapis.com/auth/calendar'],
+ * });
+ *
+ * const event = {
+ *   summary: 'Meeting with Team',
+ *   start: {
+ *     dateTime: '2024-10-15T10:00:00-07:00',
+ *   },
+ *   end: {
+ *     dateTime: '2024-10-15T11:00:00-07:00',
+ *   },
+ * };
+ *
+ * await createCalendarEvent(auth, 'primary', 'high', event);
+ */
 export async function createCalendarEvent(
   auth: JWT,
   calendarId: string,
@@ -46,17 +77,53 @@ export async function createCalendarEvent(
     });
 
     if (createResponse.status === 200 && createResponse.data) {
-      await logger.info(`Event created: ${createResponse.data.htmlLink}`);
+      logger.info(`Event created: ${createResponse.data.htmlLink}`);
     } else {
       throw new Error('Failed to create event');
     }
   } catch (error) {
-    await logger.error('Error creating event: ', error);
+    logger.error('Error creating event: ', error);
     throw error;
   }
 }
 
-// Function to update an existing calendar event
+/**
+ * Updates an existing event in Google Calendar if any fields have changed.
+ *
+ * @async
+ * @function updateCalendarEvent
+ * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
+ * @param {string} calendarId - The ID of the Google Calendar where the event exists.
+ * @param {string} priority - The priority of the event (e.g., 'low', 'medium', 'high'), which determines the reminder settings.
+ * @param {calendar_v3.Schema$Event} event - The event object containing the new details for the update.
+ * @param {calendar_v3.Schema$Event} existingEvent - The existing event object to compare against.
+ * @returns {Promise<void>} A promise that resolves when the event is successfully updated, or if no changes were detected.
+ *
+ * @throws Will throw an error if the event update fails.
+ *
+ * @example
+ * const existingEvent = {
+ *   summary: 'Meeting with Team',
+ *   start: {
+ *     dateTime: '2024-10-15T10:00:00-07:00',
+ *   },
+ *   end: {
+ *     dateTime: '2024-10-15T11:00:00-07:00',
+ *   },
+ * };
+ *
+ * const updatedEvent = {
+ *   summary: 'Updated Meeting with Team',
+ *   start: {
+ *     dateTime: '2024-10-15T10:00:00-07:00',
+ *   },
+ *   end: {
+ *     dateTime: '2024-10-15T12:00:00-07:00',
+ *   },
+ * };
+ *
+ * await updateCalendarEvent(auth, 'primary', 'medium', updatedEvent, existingEvent);
+ */
 export async function updateCalendarEvent(
   auth: JWT,
   calendarId: string,
@@ -80,7 +147,7 @@ export async function updateCalendarEvent(
   );
 
   if (!fieldsUpdated) {
-    await logger.info(
+    logger.info(
       `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : existingEvent.start?.dateTime}`
     );
     return;
@@ -98,16 +165,29 @@ export async function updateCalendarEvent(
 
     if (updateResponse.status === 200 && updateResponse.data) {
       await updateEventInDatabase(event);
-      await logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
+      logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
     } else {
       throw new Error('Failed to update event');
     }
   } catch (error) {
-    await logger.error('Error updating event: ', error);
+    logger.error('Error updating event: ', error);
     throw error;
   }
 }
 
+/**
+ * Fetches upcoming events from Google Calendar starting from the current date and time.
+ *
+ * @async
+ * @function fetchGoogleCalendarEvents
+ * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
+ * @param {string} calendarId - The ID of the Google Calendar from which to fetch events.
+ * @returns {Promise<calendar_v3.Schema$Event[]>} A promise that resolves to an array of events starting from the current date and time.
+ *
+ * @example
+ * const events = await fetchGoogleCalendarEvents(auth, 'primary');
+ * events.forEach(event => console.log(event.summary));
+ */
 export async function fetchGoogleCalendarEvents(
   auth: JWT,
   calendarId: string
@@ -128,6 +208,17 @@ export async function fetchGoogleCalendarEvents(
   return events;
 }
 
+/**
+ * Returns reminder settings based on the priority level.
+ *
+ * @function getRemindersByPriority
+ * @param {string} priority - The priority of the event (e.g., 'low', 'medium', 'high').
+ * @returns {Reminders} The reminders settings for the event.
+ *
+ * @example
+ * const reminders = getRemindersByPriority('high');
+ * console.log(reminders);
+ */
 function getRemindersByPriority(priority: string): Reminders {
   const reminders = [];
 
