@@ -135,8 +135,11 @@ export async function updateCalendarEvent(
   );
 
   if (!fieldsUpdated) {
+    const date: Date = existingEvent.start?.date
+      ? new Date(existingEvent.start.date)
+      : new Date(existingEvent.start?.dateTime || '');
     logger.info(
-      `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : new Date(existingEvent.start?.dateTime).getDate()}`
+      `No updated fields for: ${existingEvent.summary} Date: ${date.toLocaleDateString() + ' ' + (existingEvent.start?.date ? '' : date.toLocaleTimeString() + ' --> ' + new Date(existingEvent.end?.dateTime || '').toLocaleTimeString())}`
     );
     return;
   }
