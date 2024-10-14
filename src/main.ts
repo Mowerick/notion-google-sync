@@ -3,6 +3,7 @@ import { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoint
 import fs from 'fs';
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
 import nodemailer from 'nodemailer';
+import path from 'path';
 
 import config from 'config';
 import sequelize, {
@@ -59,12 +60,14 @@ async function main() {
     database_id: NOTION_PAGE_ID,
   };
 
-  const calendarEvents = await fetchGoogleCalendarEvents(
-    GOOGLE_AUTH,
-    GOOGLE_CALENDAR_ID
-  );
-
-  if (calendarEvents) await saveEventsToDatabase(calendarEvents);
+  const dbPath = path.resolve(config.sqlite.path);
+  if (fs.existsSync(dbPath)) {
+    const calendarEvents = await fetchGoogleCalendarEvents(
+      GOOGLE_AUTH,
+      GOOGLE_CALENDAR_ID
+    );
+    if (calendarEvents) await saveEventsToDatabase(calendarEvents);
+  }
 
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
   await archiveOldTasks(pages, NOTION_CLIENT);
@@ -80,24 +83,18 @@ async function main() {
       await updateCalendarEvent(
         GOOGLE_AUTH,
         GOOGLE_CALENDAR_ID,
-        page.priority,
         event,
         existingEvent
       );
     } else {
-      await createCalendarEvent(
-        GOOGLE_AUTH,
-        GOOGLE_CALENDAR_ID,
-        page.priority,
-        event
-      );
+      await createCalendarEvent(GOOGLE_AUTH, GOOGLE_CALENDAR_ID, event);
     }
   }
 
   const filename = config.logger.filename;
-  const path = config.logger.path;
+  const filepath = config.logger.path;
   const logFilePath =
-    (path.endsWith('/') ? path : path + '/') +
+    (filepath.endsWith('/') ? filepath : filepath + '/') +
     (filename.startsWith('/') ? filename.substring(1) : filename);
   const content = fs.readFileSync(logFilePath, 'utf-8');
   MAIL_SERVICE.sendMail({

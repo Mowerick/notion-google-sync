@@ -2,16 +2,8 @@ import { calendar_v3 } from '@googleapis/calendar';
 import { JWT } from 'google-auth-library';
 import _ from 'lodash';
 
-import { updateEventInDatabase } from 'database';
+import { saveEventsToDatabase, updateEventInDatabase } from 'database';
 import logger from 'logger';
-
-interface Reminders {
-  useDefault: boolean;
-  overrides: Array<{
-    method: string;
-    minutes: number;
-  }>;
-}
 
 // Define the interface for the service account key
 export interface ServiceAccountKey {
@@ -34,7 +26,6 @@ export interface ServiceAccountKey {
  * @function createCalendarEvent
  * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
  * @param {string} calendarId - The ID of the Google Calendar where the event will be created.
- * @param {string} priority - The priority of the event (e.g., 'low', 'medium', 'high'), which determines the reminder settings.
  * @param {calendar_v3.Schema$Event} event - The event object containing details like summary, description, start, end, etc.
  * @returns {Promise<void>} A promise that resolves when the event is successfully created, or rejects if there is an error.
  *
@@ -62,7 +53,6 @@ export interface ServiceAccountKey {
 export async function createCalendarEvent(
   auth: JWT,
   calendarId: string,
-  priority: string,
   event: calendar_v3.Schema$Event
 ): Promise<void> {
   const calendar = new calendar_v3.Calendar({ auth });
@@ -72,11 +62,11 @@ export async function createCalendarEvent(
       calendarId: calendarId,
       requestBody: {
         ...event,
-        reminders: getRemindersByPriority(priority),
       },
     });
 
     if (createResponse.status === 200 && createResponse.data) {
+      await saveEventsToDatabase([createResponse.data]);
       logger.info(`Event created: ${createResponse.data.htmlLink}`);
     } else {
       throw new Error('Failed to create event');
@@ -94,7 +84,6 @@ export async function createCalendarEvent(
  * @function updateCalendarEvent
  * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
  * @param {string} calendarId - The ID of the Google Calendar where the event exists.
- * @param {string} priority - The priority of the event (e.g., 'low', 'medium', 'high'), which determines the reminder settings.
  * @param {calendar_v3.Schema$Event} event - The event object containing the new details for the update.
  * @param {calendar_v3.Schema$Event} existingEvent - The existing event object to compare against.
  * @returns {Promise<void>} A promise that resolves when the event is successfully updated, or if no changes were detected.
@@ -127,7 +116,6 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
   auth: JWT,
   calendarId: string,
-  priority: string,
   event: calendar_v3.Schema$Event,
   existingEvent: calendar_v3.Schema$Event
 ): Promise<void> {
@@ -148,7 +136,7 @@ export async function updateCalendarEvent(
 
   if (!fieldsUpdated) {
     logger.info(
-      `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : existingEvent.start?.dateTime}`
+      `No updated fields for: ${existingEvent.summary} Date: ${existingEvent.start?.date ? existingEvent.start.date : new Date(existingEvent.start?.dateTime).getDate()}`
     );
     return;
   }
@@ -159,7 +147,6 @@ export async function updateCalendarEvent(
       eventId: id ? id : undefined, // need this ternary operator otherwise update wont take it
       requestBody: {
         ...spreadedEvent,
-        reminders: getRemindersByPriority(priority),
       },
     });
 
@@ -201,43 +188,5 @@ export async function fetchGoogleCalendarEvents(
   });
 
   const events = res.data.items || [];
-
   return events;
-}
-
-/**
- * Returns reminder settings based on the priority level.
- *
- * @function getRemindersByPriority
- * @param {string} priority - The priority of the event (e.g., 'low', 'medium', 'high').
- * @returns {Reminders} The reminders settings for the event.
- *
- * @example
- * const reminders = getRemindersByPriority('high');
- * console.log(reminders);
- */
-function getRemindersByPriority(priority: string): Reminders {
-  const reminders = [];
-
-  // Push low priority reminders (7-day intervals)
-  if (priority === 'low' || priority === 'medium' || priority === 'high') {
-    reminders.push({ method: 'email', minutes: 14 * 24 * 60 }); // 14 days before
-  }
-
-  // Push medium priority reminders (2-day intervals)
-  if (priority === 'medium' || priority === 'high') {
-    reminders.push({ method: 'email', minutes: 6 * 24 * 60 }); // 7 days before
-  }
-
-  // Push high priority reminders (daily intervals)
-  if (priority === 'high') {
-    reminders.push({ method: 'email', minutes: 24 * 60 }); // 1 day before
-    reminders.push({ method: 'email', minutes: 48 * 60 }); // 2 days before
-    reminders.push({ method: 'email', minutes: 72 * 60 }); // 3 days before
-  }
-
-  return {
-    useDefault: false,
-    overrides: reminders,
-  };
 }

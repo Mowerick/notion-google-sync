@@ -5,6 +5,9 @@ import { ServiceAccountKey } from 'google';
 dotenv.config();
 
 interface Config {
+  sqlite: {
+    path: string;
+  };
   google: {
     api: {
       clientId: string;
@@ -38,6 +41,9 @@ interface Config {
 }
 
 const config: Config = {
+  sqlite: {
+    path: process.env.SQL_LITE_PATH || './database.sqlite',
+  },
   google: {
     api: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
