@@ -161,7 +161,7 @@ export async function archiveOldTasks(
   tasks: Array<Task>,
   notionClient: Client
 ): Promise<void> {
-  const SEVEN_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
   const now = new Date();
 
   await Promise.all(
@@ -171,7 +171,7 @@ export async function archiveOldTasks(
           ? new Date(task.dateEnd)
           : new Date(task.dateStart);
         const timeDiff = now.getTime() - date.getTime();
-        if (timeDiff >= SEVEN_DAYS_MS) {
+        if (timeDiff >= THREE_DAYS_MS) {
           // Update task status to "Archived" in Notion
           try {
             await notionClient.pages.update({
