@@ -161,7 +161,7 @@ export async function archiveOldTasks(
   tasks: Array<Task>,
   notionClient: Client
 ): Promise<void> {
-  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+  const SEVEN_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
   const now = new Date();
 
   await Promise.all(

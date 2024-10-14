@@ -74,6 +74,7 @@ async function main() {
       continue; // Use continue instead of return to proceed to the next iteration
     }
     const event = convertNotionTaskToCalendarEvent(page);
+
     const existingEvent = await getEvent(page.id);
     if (existingEvent) {
       await updateCalendarEvent(

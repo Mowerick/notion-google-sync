@@ -194,11 +194,8 @@ export async function fetchGoogleCalendarEvents(
 ): Promise<calendar_v3.Schema$Event[]> {
   const calendar = new calendar_v3.Calendar({ auth });
 
-  const now = new Date().toISOString();
-
   const res = await calendar.events.list({
     calendarId,
-    timeMin: now,
     singleEvents: true,
     orderBy: 'startTime',
   });

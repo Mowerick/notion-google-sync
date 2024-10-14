@@ -17,7 +17,6 @@ export default function convertNotionTaskToCalendarEvent(
     id,
     location,
   } = page;
-
   const summary = [type, className, task].filter(Boolean).join(' ');
 
   const eventDescription =
@@ -30,25 +29,35 @@ export default function convertNotionTaskToCalendarEvent(
     return includeTime ? isoString : isoString.split('T')[0];
   };
 
-  const date = dateEnd
-    ? {
-        start: {
-          dateTime: formatDate(dateStart, true),
-          timeZone: 'UTC',
-        },
-        end: {
-          dateTime: formatDate(dateEnd, true),
-          timeZone: 'UTC',
-        },
-      }
-    : {
-        start: {
-          date: formatDate(dateStart, false),
-        },
-        end: {
-          date: formatDate(dateStart, false),
-        },
-      };
+  const hasTime = (dateString: string) => {
+    // Regular expression to match time in the format HH:mm or HH:mm:ss
+    const timeRegex = /\d{2}:\d{2}(?::\d{2})?/;
+    return timeRegex.test(dateString);
+  };
+
+  const date =
+    dateEnd || hasTime(dateStart)
+      ? {
+          start: {
+            dateTime: formatDate(dateStart, true),
+            timeZone: 'UTC',
+          },
+          end: {
+            dateTime: formatDate(
+              hasTime(dateStart) && !dateEnd ? dateStart : dateEnd,
+              true
+            ),
+            timeZone: 'UTC',
+          },
+        }
+      : {
+          start: {
+            date: formatDate(dateStart, false),
+          },
+          end: {
+            date: formatDate(dateStart, false),
+          },
+        };
 
   const eventRequest: calendar_v3.Schema$Event = {
     id,
