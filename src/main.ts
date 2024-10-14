@@ -6,11 +6,7 @@ import nodemailer from 'nodemailer';
 import path from 'path';
 
 import config from 'config';
-import sequelize, {
-  destroyOldEvents,
-  getEvent,
-  saveEventsToDatabase,
-} from 'database';
+import sequelize, { getEvent, saveEventsToDatabase } from 'database';
 import {
   createCalendarEvent,
   fetchGoogleCalendarEvents,
@@ -48,8 +44,6 @@ const MAIL_OPTIONS = {
 };
 async function main() {
   await sequelize.sync();
-  const deletedRowsCount = await destroyOldEvents();
-  logger.info('Deleted ' + deletedRowsCount + ' Rows');
   const databaseParam: QueryDatabaseParameters = {
     filter: {
       property: 'Status',

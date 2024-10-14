@@ -1,5 +1,5 @@
 import { calendar_v3 } from '@googleapis/calendar/build/v3';
-import { DataTypes, Model, Op, Sequelize } from 'sequelize';
+import { DataTypes, Model, Sequelize } from 'sequelize';
 
 import config from 'config';
 
@@ -74,12 +74,10 @@ export async function updateEventInDatabase(
   }
 }
 
-export async function destroyOldEvents(): Promise<number> {
+export async function destroyArchivedEvent(id: string): Promise<number> {
   const result = await Event.destroy({
     where: {
-      start: {
-        [Op.lt]: new Date(),
-      },
+      id,
     },
   });
 
