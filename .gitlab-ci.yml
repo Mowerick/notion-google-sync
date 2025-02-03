@@ -12,7 +12,8 @@ build:
   artifacts:
     paths:
       - dist/
-      - node_modules/
+      - package.json
+      - yarn.lock
     expire_in: 1 hour
   only:
     - /^v\d+\.\d+\.\d+$/
@@ -39,7 +40,8 @@ deploy:
     - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
   script:
     # Deploy node_modules to the server
-    - scp -r node_modules $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
+    - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
+    - scp yarn.lock $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
     # Deploy the contents of dist/ to the server
     - scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /scripts/notion-google-sync/ && yarn install --frozen-lockfile"
