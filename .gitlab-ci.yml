@@ -29,6 +29,8 @@ deploy:
     # Install SSH client if not already present
     - "which ssh-agent || (apt-get update -y && apt-get install openssh-client -y)"
     # Start SSH agent and add private key
+    - echo "Host $DEPLOYER_HOST"
+    - echo "User $DEPLOYER_USER"
     - eval $(ssh-agent -s)
     - chmod 600 "$SSH_PRIVATE_KEY"
     - ssh-add "$SSH_PRIVATE_KEY"
