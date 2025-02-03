@@ -30,15 +30,14 @@ deploy:
     - "which ssh-agent || (apt-get update -y && apt-get install openssh-client -y)"
     # Start SSH agent and add private key
     - eval $(ssh-agent -s)
-    - chmod 400 "$SSH_PRIVATE_KEY"
-    - ssh-add "$SSH_PRIVATE_KEY"
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
   script:
     # Deploy node_modules to the server
-    - scp -r node_modules $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
+    - scp -r node_modules $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
     # Deploy the contents of dist/ to the server
-    - scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:/opt/notion-google-sync/
+    - scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
   tags:
     - node
