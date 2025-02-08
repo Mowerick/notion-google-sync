@@ -74,7 +74,10 @@ export async function createCalendarEvent(
       logger.info(`Event created: ${createResponse.data.htmlLink}`);
     } else {
       const error = createResponse as unknown as GaxiosError;
-      logger.error('Error updating event: ', error);
+      logger.error(
+        'Error updating event: ',
+        `Error updating event: ${error.response?.config.data.summary}`
+      );
     }
   } catch (error) {
     logger.error('Error creating event: ', error);
@@ -166,7 +169,10 @@ export async function updateCalendarEvent(
       logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
     } else {
       const error = updateResponse as unknown as GaxiosError;
-      logger.error('Error updating event: ', error);
+      logger.error(
+        `Error updating event: ${error.response?.config.data.summary}`,
+        error.response?.data.errors[0]?.message
+      );
     }
   } catch (error) {
     logger.error('Error updating event: ', error);
