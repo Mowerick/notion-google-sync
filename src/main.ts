@@ -68,7 +68,7 @@ async function main() {
   for (const page of pages || []) {
     if (!page.dateStart) {
       logger.error(`Page: ${page.task} got no Date, creation cancelled`);
-      continue; // Use continue instead of return to proceed to the next iteration
+      continue;
     }
     const event = convertNotionTaskToCalendarEvent(page);
 

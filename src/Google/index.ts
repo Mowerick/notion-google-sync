@@ -1,4 +1,5 @@
 import { calendar_v3 } from '@googleapis/calendar';
+import { GaxiosError } from 'gaxios';
 import { JWT } from 'google-auth-library';
 import _ from 'lodash';
 
@@ -65,11 +66,15 @@ export async function createCalendarEvent(
       },
     });
 
-    if (createResponse.status === 200 && createResponse.data) {
+    if (
+      /^2\d\d$/.test(createResponse.status.toString()) &&
+      createResponse.data
+    ) {
       await saveEventsToDatabase([createResponse.data]);
       logger.info(`Event created: ${createResponse.data.htmlLink}`);
     } else {
-      throw new Error('Failed to create event');
+      const error = createResponse as unknown as GaxiosError;
+      logger.error('Error updating event: ', error);
     }
   } catch (error) {
     logger.error('Error creating event: ', error);
@@ -153,11 +158,15 @@ export async function updateCalendarEvent(
       },
     });
 
-    if (updateResponse.status === 200 && updateResponse.data) {
+    if (
+      /^2\d\d$/.test(updateResponse.status.toString()) &&
+      updateResponse.data
+    ) {
       await updateEventInDatabase(event);
       logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
     } else {
-      throw new Error('Failed to update event');
+      const error = updateResponse as unknown as GaxiosError;
+      logger.error('Error updating event: ', error);
     }
   } catch (error) {
     logger.error('Error updating event: ', error);
