@@ -42,6 +42,7 @@ const MAIL_OPTIONS = {
   subject: config.mailer.subject,
   text: `Please find the attached log from ${new Date().toDateString()}`,
 };
+
 async function main() {
   await sequelize.sync();
   const databaseParam: QueryDatabaseParameters = {

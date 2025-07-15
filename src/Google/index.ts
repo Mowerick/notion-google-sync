@@ -59,29 +59,41 @@ export async function createCalendarEvent(
   const calendar = new calendar_v3.Calendar({ auth });
 
   try {
-    const createResponse = await calendar.events.insert({
-      calendarId: calendarId,
-      requestBody: {
-        ...event,
-      },
-    });
-
-    if (
-      /^2\d\d$/.test(createResponse.status.toString()) &&
-      createResponse.data
-    ) {
-      await saveEventsToDatabase([createResponse.data]);
-      logger.info(`Event created: ${createResponse.data.htmlLink}`);
-    } else {
-      const error = createResponse as unknown as GaxiosError;
+    await inserEvent(calendar, calendarId, event);
+  } catch (err) {
+    const error = err as GaxiosError;
+    const errors = error.response?.data?.error?.errors as
+      | { domain: string; reason: string; message: string }[]
+      | undefined;
+    const isDuplicateError = errors?.some((e) => e.reason === 'duplicate');
+    const status = error?.response?.status;
+    if (status === 409 && isDuplicateError) {
       logger.error(
-        'Error updating event: ',
-        `Error updating event: ${error.response?.config.data.summary}`
+        `Error creating event: Duplicate event detected for ${event.summary}, it seems event was deleted from Google Calendar 
+        but still exists in the database. Duplicate Notion task and delete the old one to fix this.`
       );
+    } else {
+      logger.error('Error creating event:', error);
+      throw error;
     }
-  } catch (error) {
-    logger.error('Error creating event: ', error);
-    throw error;
+  }
+}
+
+async function inserEvent(
+  calendar: calendar_v3.Calendar,
+  calendarId: string,
+  event: calendar_v3.Schema$Event
+) {
+  const createResponse = await calendar.events.insert({
+    calendarId: calendarId,
+    requestBody: { ...event },
+  });
+
+  if (/^2\d\d$/.test(createResponse.status.toString()) && createResponse.data) {
+    await saveEventsToDatabase([createResponse.data]);
+    logger.info(`Event created: ${createResponse.data.htmlLink}`);
+  } else {
+    throw new Error();
   }
 }
 
@@ -203,6 +215,7 @@ export async function fetchGoogleCalendarEvents(
     calendarId,
     singleEvents: true,
     orderBy: 'startTime',
+    timeMin: new Date().toISOString(), // Only future events
   });
 
   const events = res.data.items || [];
