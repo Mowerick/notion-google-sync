@@ -1,5 +1,5 @@
 import { calendar_v3 } from '@googleapis/calendar/build/v3';
-import { DataTypes, Model, Sequelize } from 'sequelize';
+import { DataTypes, Model, Op, Sequelize } from 'sequelize';
 
 import config from 'config';
 
@@ -82,6 +82,21 @@ export async function destroyArchivedEvent(id: string): Promise<number> {
   });
 
   return result;
+}
+
+export async function destroyEndedEvents(): Promise<number> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to midnight
+
+  const result = await Event.destroy({
+    where: {
+      end: {
+        [Op.lt]: today, // Less than today
+      },
+    },
+  });
+
+  return result; // Number of rows deleted
 }
 
 export async function getEvent(

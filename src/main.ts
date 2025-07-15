@@ -6,7 +6,11 @@ import nodemailer from 'nodemailer';
 import path from 'path';
 
 import config from 'config';
-import sequelize, { getEvent, saveEventsToDatabase } from 'database';
+import sequelize, {
+  destroyEndedEvents,
+  getEvent,
+  saveEventsToDatabase,
+} from 'database';
 import {
   createCalendarEvent,
   fetchGoogleCalendarEvents,
@@ -64,7 +68,10 @@ async function main() {
     if (calendarEvents) await saveEventsToDatabase(calendarEvents);
   }
 
+  await destroyEndedEvents();
+
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
+
   await archiveOldTasks(pages, NOTION_CLIENT);
   for (const page of pages || []) {
     if (!page.dateStart) {

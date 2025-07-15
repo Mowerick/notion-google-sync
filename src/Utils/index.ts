@@ -34,9 +34,8 @@ export default function convertNotionTaskToCalendarEvent(
     const timeRegex = /\d{2}:\d{2}(?::\d{2})?/;
     return timeRegex.test(dateString);
   };
-
   const date =
-    dateEnd || hasTime(dateStart)
+    (dateEnd && hasTime(dateEnd)) || hasTime(dateStart)
       ? {
           start: {
             dateTime: formatDate(dateStart, true),
@@ -50,15 +49,23 @@ export default function convertNotionTaskToCalendarEvent(
             timeZone: 'UTC',
           },
         }
-      : {
-          start: {
-            date: formatDate(dateStart, false),
-          },
-          end: {
-            date: formatDate(dateStart, false),
-          },
-        };
-
+      : dateEnd
+        ? {
+            start: {
+              date: formatDate(dateStart, false),
+            },
+            end: {
+              date: formatDate(dateEnd, false),
+            },
+          }
+        : {
+            start: {
+              date: formatDate(dateStart, false),
+            },
+            end: {
+              date: formatDate(dateStart, false),
+            },
+          };
   const eventRequest: calendar_v3.Schema$Event = {
     id,
     location,
