@@ -18,7 +18,7 @@ import {
   updateCalendarEvent,
 } from 'google';
 import logger from 'logger';
-import fetchNotionPage, { archiveOldTasks } from 'notion';
+import { archiveOldTasks, fetchNotionPage } from 'notion';
 import convertNotionTaskToCalendarEvent from 'utils';
 
 const GOOGLE_AUTH = new JWT({
