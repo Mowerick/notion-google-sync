@@ -2,6 +2,7 @@ import { calendar_v3 } from '@googleapis/calendar/build/v3';
 import { DataTypes, Model, Op, Sequelize } from 'sequelize';
 
 import config from 'config';
+import { Task } from 'notion';
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
@@ -134,6 +135,29 @@ export async function getEvent(
     location: location ? location : '',
     ...date,
   };
+}
+
+export async function findEventsForDeletedNotionPages(
+  pages: Task[]
+): Promise<Event[]> {
+  const pageIds = pages.map((page) => page.id);
+  return await Event.findAll({
+    where: {
+      id: {
+        [Op.notIn]: pageIds,
+      },
+    },
+  });
+}
+
+export async function destroyEvents(events: Event[]): Promise<void> {
+  await Event.destroy({
+    where: {
+      id: {
+        [Op.in]: events.map((event) => event.id),
+      },
+    },
+  });
 }
 
 export class Event extends Model {

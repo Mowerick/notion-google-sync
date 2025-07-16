@@ -25,5 +25,8 @@
   },
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   } // set as "true" to run 'prettier' last not first
 }

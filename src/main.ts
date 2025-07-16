@@ -13,6 +13,7 @@ import sequelize, {
 } from 'database';
 import {
   createCalendarEvent,
+  deleteEventsForDeletedNotionPages,
   fetchGoogleCalendarEvents,
   updateCalendarEvent,
 } from 'google';
@@ -66,6 +67,11 @@ async function main() {
       GOOGLE_CALENDAR_ID
     );
     if (calendarEvents) await saveEventsToDatabase(calendarEvents);
+  } else {
+    logger.error(
+      `Database not found at ${dbPath} so script execution stopped.`
+    );
+    return;
   }
 
   await destroyEndedEvents();
@@ -73,11 +79,19 @@ async function main() {
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
 
   await archiveOldTasks(pages, NOTION_CLIENT);
+
+  await deleteEventsForDeletedNotionPages(
+    pages,
+    GOOGLE_AUTH,
+    GOOGLE_CALENDAR_ID
+  );
+
   for (const page of pages || []) {
     if (!page.dateStart) {
-      logger.error(`Page: ${page.task} got no Date, creation cancelled`);
+      logger.error(`Page: ${page.task} got no Date, event will not be created`);
       continue;
     }
+
     const event = convertNotionTaskToCalendarEvent(page);
 
     const existingEvent = await getEvent(page.id);

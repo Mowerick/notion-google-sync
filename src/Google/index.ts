@@ -3,8 +3,14 @@ import { GaxiosError } from 'gaxios';
 import { JWT } from 'google-auth-library';
 import _ from 'lodash';
 
-import { saveEventsToDatabase, updateEventInDatabase } from 'database';
+import {
+  destroyEvents,
+  findEventsForDeletedNotionPages,
+  saveEventsToDatabase,
+  updateEventInDatabase,
+} from 'database';
 import logger from 'logger';
+import { Task } from 'notion';
 
 // Define the interface for the service account key
 export interface ServiceAccountKey {
@@ -220,4 +226,26 @@ export async function fetchGoogleCalendarEvents(
 
   const events = res.data.items || [];
   return events;
+}
+
+export async function deleteEventsForDeletedNotionPages(
+  pages: Task[],
+  auth: JWT,
+  calendarId: string
+): Promise<void> {
+  const eventsToDelete = await findEventsForDeletedNotionPages(pages);
+
+  const calendar = new calendar_v3.Calendar({ auth });
+
+  eventsToDelete.forEach(async (event) => {
+    logger.info(
+      `Event info: Notionpage was deleted so Google Event ${event.summary} was deleted aswell.`
+    );
+    await calendar.events.delete({
+      calendarId,
+      eventId: event.id!, // must match the ID you're trying to reuse
+    });
+  });
+
+  await destroyEvents(eventsToDelete);
 }
