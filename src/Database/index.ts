@@ -12,6 +12,17 @@ const sequelize = new Sequelize({
 
 export default sequelize;
 
+/**
+ * Saves events to the SQLite database.
+ *
+ * This function iterates through an array of Google Calendar events and saves them to the SQLite database.
+ * If an event already exists, it is not duplicated.
+ *
+ * @async
+ * @function saveEventsToDatabase
+ * @param {Array<calendar_v3.Schema$Event>} events - An array of Google Calendar events to be saved.
+ * @returns {Promise<void>} A promise that resolves when all events are saved.
+ */
 export async function saveEventsToDatabase(
   events: calendar_v3.Schema$Event[]
 ): Promise<void> {
@@ -39,6 +50,17 @@ export async function saveEventsToDatabase(
   }
 }
 
+/**
+ * Updates an event in the SQLite database.
+ *
+ * This function checks if the event exists in the database. If it does, the event's details are updated.
+ * If it does not exist, the event is created.
+ *
+ * @async
+ * @function updateEventInDatabase
+ * @param {calendar_v3.Schema$Event} event - The Google Calendar event to be updated or created.
+ * @returns {Promise<void>} A promise that resolves when the event is updated or created.
+ */
 export async function updateEventInDatabase(
   event: calendar_v3.Schema$Event
 ): Promise<void> {
@@ -75,6 +97,16 @@ export async function updateEventInDatabase(
   }
 }
 
+/**
+ * Deletes an archived event from the SQLite database.
+ *
+ * This function removes the event associated with the given task ID from the SQLite database.
+ *
+ * @async
+ * @function destroyArchivedEvent
+ * @param {string} id - The unique identifier of the event to be deleted.
+ * @returns {Promise<number>} A promise that resolves to the number of rows deleted.
+ */
 export async function destroyArchivedEvent(id: string): Promise<number> {
   const result = await Event.destroy({
     where: {
@@ -85,6 +117,15 @@ export async function destroyArchivedEvent(id: string): Promise<number> {
   return result;
 }
 
+/**
+ * Deletes events that have ended before today from the SQLite database.
+ *
+ * This function removes all events from the database where the end date is less than today's date.
+ *
+ * @async
+ * @function destroyEndedEvents
+ * @returns {Promise<number>} A promise that resolves to the number of rows deleted.
+ */
 export async function destroyEndedEvents(): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Normalize to midnight
@@ -100,6 +141,17 @@ export async function destroyEndedEvents(): Promise<number> {
   return result; // Number of rows deleted
 }
 
+/**
+ * Retrieves an event from the SQLite database.
+ *
+ * This function fetches the event associated with the given event ID from the database.
+ * If the event is found, its details are returned in a format compatible with Google Calendar.
+ *
+ * @async
+ * @function getEvent
+ * @param {string} eventId - The unique identifier of the event to be retrieved.
+ * @returns {Promise<calendar_v3.Schema$Event | null>} A promise that resolves to the event object or null if not found.
+ */
 export async function getEvent(
   eventId: string
 ): Promise<calendar_v3.Schema$Event | null> {
@@ -128,6 +180,7 @@ export async function getEvent(
           timeZone: 'UTC',
         },
       };
+
   return {
     description,
     summary,
@@ -137,6 +190,12 @@ export async function getEvent(
   };
 }
 
+/**
+ * Finds and returns all `Event` records whose IDs do not match any of the provided Notion page IDs.
+ *
+ * @param pages - An array of `Task` objects representing Notion pages.
+ * @returns A promise that resolves to an array of `Event` objects whose IDs are not present in the given pages.
+ */
 export async function findEventsForDeletedNotionPages(
   pages: Task[]
 ): Promise<Event[]> {
@@ -150,6 +209,12 @@ export async function findEventsForDeletedNotionPages(
   });
 }
 
+/**
+ * Deletes multiple events from the database based on their IDs.
+ *
+ * @param events - An array of `Event` objects to be deleted. Each event's `id` will be used to identify records for deletion.
+ * @returns A promise that resolves when the deletion operation is complete.
+ */
 export async function destroyEvents(events: Event[]): Promise<void> {
   await Event.destroy({
     where: {

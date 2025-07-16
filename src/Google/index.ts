@@ -13,6 +13,9 @@ import logger from 'logger';
 import { Task } from 'notion';
 
 // Define the interface for the service account key
+/**
+ * ServiceAccountKey interface for Google service account credentials.
+ */
 export interface ServiceAccountKey {
   type: string;
   project_id: string;
@@ -29,14 +32,13 @@ export interface ServiceAccountKey {
 /**
  * Creates a new event in Google Calendar based on the provided event details.
  *
- * @async
- * @function createCalendarEvent
- * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
- * @param {string} calendarId - The ID of the Google Calendar where the event will be created.
- * @param {calendar_v3.Schema$Event} event - The event object containing details like summary, description, start, end, etc.
- * @returns {Promise<void>} A promise that resolves when the event is successfully created, or rejects if there is an error.
+ * Handles duplicate event errors (status 409) gracefully and logs a helpful message.
  *
- * @throws Will throw an error if the event creation fails.
+ * @param auth - The Google Calendar authentication object (JWT).
+ * @param calendarId - The ID of the Google Calendar where the event will be created.
+ * @param event - The event object containing details like summary, description, start, end, etc.
+ * @returns A promise that resolves when the event is successfully created, or rejects if there is an error.
+ * @throws Will throw an error if the event creation fails for reasons other than duplicate.
  *
  * @example
  * const auth = new JWT({
@@ -85,6 +87,15 @@ export async function createCalendarEvent(
   }
 }
 
+/**
+ * Helper function to insert an event into Google Calendar and save it to the database.
+ *
+ * @param calendar - The Google Calendar API client.
+ * @param calendarId - The ID of the Google Calendar.
+ * @param event - The event object to insert.
+ * @returns A promise that resolves when the event is created and saved.
+ * @throws Throws an error if the event creation fails.
+ */
 async function inserEvent(
   calendar: calendar_v3.Calendar,
   calendarId: string,
@@ -106,14 +117,11 @@ async function inserEvent(
 /**
  * Updates an existing event in Google Calendar if any fields have changed.
  *
- * @async
- * @function updateCalendarEvent
- * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
- * @param {string} calendarId - The ID of the Google Calendar where the event exists.
- * @param {calendar_v3.Schema$Event} event - The event object containing the new details for the update.
- * @param {calendar_v3.Schema$Event} existingEvent - The existing event object to compare against.
- * @returns {Promise<void>} A promise that resolves when the event is successfully updated, or if no changes were detected.
- *
+ * @param auth - The Google Calendar authentication object (JWT).
+ * @param calendarId - The ID of the Google Calendar where the event exists.
+ * @param event - The event object containing the new details for the update.
+ * @param existingEvent - The existing event object to compare against.
+ * @returns A promise that resolves when the event is successfully updated, or if no changes were detected.
  * @throws Will throw an error if the event update fails.
  *
  * @example
@@ -201,11 +209,9 @@ export async function updateCalendarEvent(
 /**
  * Fetches upcoming events from Google Calendar starting from the current date and time.
  *
- * @async
- * @function fetchGoogleCalendarEvents
- * @param {JWT} auth - The Google Calendar authentication object (JWT) used to authenticate API requests.
- * @param {string} calendarId - The ID of the Google Calendar from which to fetch events.
- * @returns {Promise<calendar_v3.Schema$Event[]>} A promise that resolves to an array of events starting from the current date and time.
+ * @param auth - The Google Calendar authentication object (JWT).
+ * @param calendarId - The ID of the Google Calendar from which to fetch events.
+ * @returns A promise that resolves to an array of events starting from the current date and time.
  *
  * @example
  * const events = await fetchGoogleCalendarEvents(auth, 'primary');
@@ -228,6 +234,14 @@ export async function fetchGoogleCalendarEvents(
   return events;
 }
 
+/**
+ * Deletes Google Calendar events that no longer have a corresponding Notion page.
+ *
+ * @param pages - Array of current Notion Task objects.
+ * @param auth - The Google Calendar authentication object (JWT).
+ * @param calendarId - The ID of the Google Calendar.
+ * @returns A promise that resolves when all orphaned events are deleted.
+ */
 export async function deleteEventsForDeletedNotionPages(
   pages: Task[],
   auth: JWT,

@@ -81,7 +81,7 @@ interface RichTextObjectRespone {
  *   })
  *   .catch(error => console.error(error));
  */
-async function fetchNotionPage(
+export async function fetchNotionPage(
   notionClient: Client,
   param: QueryDatabaseParameters
 ): Promise<Array<Task>> {
@@ -153,10 +153,17 @@ async function fetchNotionPage(
 }
 
 /**
- * Archives tasks that are marked as "Done" and are older than 7 days.
- * @param tasks - Array of Task objects.
- * @param notionClient - Notion client instance to update tasks.
- * @returns void
+ * Archives tasks that are marked as "Done" and are older than a specified duration.
+ *
+ * This function iterates through an array of tasks, checks if their status is "Done",
+ * and determines if they are older than the specified duration (3 days). If so, it updates
+ * their status to "Archived" in Notion and deletes the corresponding event in the SQLite database.
+ *
+ * @async
+ * @function archiveOldTasks
+ * @param {Array<Task>} tasks - An array of Task objects to be processed.
+ * @param {Client} notionClient - An instance of the Notion Client SDK used to update tasks.
+ * @returns {Promise<void>} A promise that resolves when all eligible tasks are archived.
  */
 export async function archiveOldTasks(
   tasks: Array<Task>,
@@ -202,5 +209,3 @@ export async function archiveOldTasks(
     })
   );
 }
-
-export default fetchNotionPage;
