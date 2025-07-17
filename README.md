@@ -7,7 +7,7 @@ I created this tool to streamline my university workflow by keeping Notion tasks
 
 - Sync Notion tasks to Google Calendar as events
 - Map Notion properties to Google Calendar event fields
-- One-way or two-way sync options
+- When deleting Notion Page corresponding Google event will be deleted as well
 - Customizable sync intervals
 - Error logging and reporting
 
