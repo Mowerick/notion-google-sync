@@ -88,7 +88,9 @@ async function main() {
 
   for (const page of pages || []) {
     if (!page.dateStart) {
-      logger.error(`Page: ${page.task} got no Date, event will not be created`);
+      logger.error(
+        `Page: ${page.task} Class: ${page.className} got no Date, event will not be created`
+      );
       continue;
     }
 
