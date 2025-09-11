@@ -7,7 +7,6 @@ import {
   StatusPropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
-import { destroyArchivedEvent } from 'database';
 import logger from 'logger';
 
 export interface Task {
@@ -174,36 +173,30 @@ export async function archiveOldTasks(
 
   await Promise.all(
     tasks.map(async (task) => {
-      if (task.status === 'Done') {
-        const date = task.dateEnd
-          ? new Date(task.dateEnd)
-          : new Date(task.dateStart);
-        const timeDiff = now.getTime() - date.getTime();
-        if (timeDiff >= THREE_DAYS_MS) {
-          // Update task status to "Archived" in Notion
-          try {
-            await notionClient.pages.update({
-              page_id: task.id,
-              properties: {
-                Status: {
-                  status: {
-                    name: 'Archived',
-                  },
+      const date = task.dateEnd
+        ? new Date(task.dateEnd)
+        : new Date(task.dateStart);
+      const timeDiff = now.getTime() - date.getTime();
+      if (task.status === 'Done' && timeDiff >= THREE_DAYS_MS) {
+        try {
+          await notionClient.pages.update({
+            page_id: task.id,
+            properties: {
+              Status: {
+                status: {
+                  name: 'Archived',
                 },
               },
-            });
-
-            await destroyArchivedEvent(task.id);
-
-            task.status = 'Archived'; // Update local task status
-            logger.info(
-              `Task with ID: ${task.id} and title: "${task.task}" has been archived in Notion and deletes in the sqlite database.`
-            );
-          } catch (error) {
-            logger.error(
-              `Failed to archive task with ID: ${task.id}. Error: ${error}`
-            );
-          }
+            },
+          });
+          task.status = 'Archived';
+          logger.info(
+            `Task with ID: ${task.id} and title: "${task.task}" has been archived in Notion and deletes in the sqlite database.`
+          );
+        } catch (error) {
+          logger.error(
+            `Failed to archive task with ID: ${task.id}. Error: ${error}`
+          );
         }
       }
     })
