@@ -77,8 +77,7 @@ export async function createCalendarEvent(
     const status = error?.response?.status;
     if (status === 409 && isDuplicateError) {
       logger.error(
-        `Error creating event: Duplicate event detected for ${event.summary}, it seems event was deleted from Google Calendar 
-        but still exists in the database. Duplicate Notion task and delete the old one to fix this.`
+        `Error creating event: Duplicate event detected for ${event.summary}, it seems event was deleted from database but notion page is still getting returned.`
       );
     } else {
       logger.error('Error creating event:', error);

@@ -7,6 +7,7 @@ import {
   StatusPropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
+import { destroyArchivedEvent } from 'database';
 import logger from 'logger';
 
 export interface Task {
@@ -189,9 +190,10 @@ export async function archiveOldTasks(
               },
             },
           });
+          await destroyArchivedEvent(task.id);
           task.status = 'Archived';
           logger.info(
-            `Task with ID: ${task.id} and title: "${task.task}" has been archived in Notion and deletes in the sqlite database.`
+            `Task with ID: ${task.id} and title: "${task.task}" has been archived in Notion and deleted in the sqlite database.`
           );
         } catch (error) {
           logger.error(

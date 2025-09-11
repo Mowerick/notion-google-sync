@@ -6,11 +6,7 @@ import nodemailer from 'nodemailer';
 import path from 'path';
 
 import config from 'config';
-import sequelize, {
-  destroyEndedEvents,
-  getEvent,
-  saveEventsToDatabase,
-} from 'database';
+import sequelize, { getEvent, saveEventsToDatabase } from 'database';
 import {
   createCalendarEvent,
   deleteEventsForDeletedNotionPages,
@@ -73,8 +69,6 @@ async function main() {
     );
     return;
   }
-
-  await destroyEndedEvents();
 
   const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
 
