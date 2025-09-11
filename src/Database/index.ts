@@ -98,27 +98,23 @@ export async function updateEventInDatabase(
 }
 
 /**
- * Deletes events that have ended before today from the SQLite database.
+ * Deletes an archived event from the SQLite database.
  *
- * This function removes all events from the database where the end date is less than today's date.
+ * This function removes the event associated with the given task ID from the SQLite database.
  *
  * @async
- * @function destroyEndedEvents
+ * @function destroyArchivedEvent
+ * @param {string} id - The unique identifier of the event to be deleted.
  * @returns {Promise<number>} A promise that resolves to the number of rows deleted.
  */
-export async function destroyEndedEvents(): Promise<number> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize to midnight
-
+export async function destroyArchivedEvent(id: string): Promise<number> {
   const result = await Event.destroy({
     where: {
-      end: {
-        [Op.lt]: today, // Less than today
-      },
+      id,
     },
   });
 
-  return result; // Number of rows deleted
+  return result;
 }
 
 /**
