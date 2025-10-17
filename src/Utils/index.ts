@@ -38,8 +38,30 @@ export default function convertNotionTaskToCalendarEvent(
     (description ? '\n' + description : '');
 
   const formatDate = (dateStr: string, includeTime: boolean) => {
-    const isoString = new Date(dateStr).toISOString();
-    return includeTime ? isoString : isoString.split('T')[0];
+    const date = new Date(dateStr);
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+
+    if (!includeTime) {
+      return `${year}-${month}-${day}`;
+    }
+
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    // timezone offset in minutes → format as ±HH:MM
+    const offsetMinutes = date.getTimezoneOffset();
+    const sign = offsetMinutes > 0 ? '-' : '+';
+    const absOffset = Math.abs(offsetMinutes);
+    const offsetHours = pad(Math.floor(absOffset / 60));
+    const offsetMins = pad(absOffset % 60);
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMins}`;
   };
 
   const hasTime = (dateString: string) => {

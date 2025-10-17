@@ -3,18 +3,16 @@ import { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoint
 import fs from 'fs';
 import { JWT } from 'google-auth-library'; // OAuth2Client for authentication
 import nodemailer from 'nodemailer';
-import path from 'path';
 
 import config from 'config';
-import sequelize, { getEvent, saveEventsToDatabase } from 'database';
 import {
   createCalendarEvent,
-  deleteEventsForDeletedNotionPages,
-  fetchGoogleCalendarEvents,
+  deleteOrphanedGoogleEvents,
+  fetchRelevantGoogleCalendarEvents,
   updateCalendarEvent,
 } from 'google';
 import logger from 'logger';
-import { archiveOldTasks, fetchNotionPage } from 'notion';
+import { archiveOldTasks, fetchNotionPages } from 'notion';
 import convertNotionTaskToCalendarEvent from 'utils';
 
 const GOOGLE_AUTH = new JWT({
@@ -45,8 +43,7 @@ const MAIL_OPTIONS = {
 };
 
 async function main() {
-  await sequelize.sync();
-  const databaseParam: QueryDatabaseParameters = {
+  const notionDatabaseParams: QueryDatabaseParameters = {
     filter: {
       property: 'Status',
       status: {
@@ -56,31 +53,24 @@ async function main() {
     database_id: NOTION_PAGE_ID,
   };
 
-  const dbPath = path.resolve(config.sqlite.path);
-  if (fs.existsSync(dbPath)) {
-    const calendarEvents = await fetchGoogleCalendarEvents(
-      GOOGLE_AUTH,
-      GOOGLE_CALENDAR_ID
-    );
-    if (calendarEvents) await saveEventsToDatabase(calendarEvents);
-  } else {
-    logger.error(
-      `Database not found at ${dbPath} so script execution stopped.`
-    );
-    return;
-  }
+  const pages = await fetchNotionPages(NOTION_CLIENT, notionDatabaseParams);
+  const logMsg =
+    pages.length === 1
+      ? 'Process 1 notion task'
+      : `Processing all ${pages.length} notion tasks`;
+  logger.info(logMsg);
+  const pagesWithoutArchived = await archiveOldTasks(pages, NOTION_CLIENT);
 
-  const pages = await fetchNotionPage(NOTION_CLIENT, databaseParam);
-
-  await archiveOldTasks(pages, NOTION_CLIENT);
-
-  await deleteEventsForDeletedNotionPages(
-    pages,
+  const existingCalendarEvents = await fetchRelevantGoogleCalendarEvents(
     GOOGLE_AUTH,
     GOOGLE_CALENDAR_ID
   );
 
-  for (const page of pages || []) {
+  const existingEventMap = new Map(
+    existingCalendarEvents.map((event) => [event.id, event])
+  );
+
+  for (const page of pagesWithoutArchived || []) {
     if (!page.dateStart) {
       logger.error(
         `Page: ${page.task} Class: ${page.className} got no Date, event will not be created`
@@ -89,19 +79,43 @@ async function main() {
     }
 
     const event = convertNotionTaskToCalendarEvent(page);
-
-    const existingEvent = await getEvent(page.id);
-    if (existingEvent) {
+    await new Promise((res) => setTimeout(res, 10));
+    if (existingEventMap.has(page.id)) {
       await updateCalendarEvent(
         GOOGLE_AUTH,
         GOOGLE_CALENDAR_ID,
         event,
-        existingEvent
+        existingEventMap.get(page.id)!
       );
     } else {
       await createCalendarEvent(GOOGLE_AUTH, GOOGLE_CALENDAR_ID, event);
     }
   }
+
+  const archivedNotionParams: QueryDatabaseParameters = {
+    filter: {
+      property: 'Status',
+      status: { equals: 'Archived' },
+    },
+    database_id: NOTION_PAGE_ID,
+  };
+
+  const archivedPages = await fetchNotionPages(
+    NOTION_CLIENT,
+    archivedNotionParams
+  );
+
+  const allKnownNotionIds = new Set([
+    ...pagesWithoutArchived.map((p) => p.id),
+    ...archivedPages.map((p) => p.id),
+  ]);
+
+  await deleteOrphanedGoogleEvents(
+    GOOGLE_AUTH,
+    GOOGLE_CALENDAR_ID,
+    allKnownNotionIds,
+    existingCalendarEvents
+  );
 
   const filename = config.logger.filename;
   const filepath = config.logger.path;
@@ -109,7 +123,7 @@ async function main() {
     (filepath.endsWith('/') ? filepath : filepath + '/') +
     (filename.startsWith('/') ? filename.substring(1) : filename);
   const content = fs.readFileSync(logFilePath, 'utf-8');
-  MAIL_SERVICE.sendMail({
+  await MAIL_SERVICE.sendMail({
     ...MAIL_OPTIONS,
     attachments: [
       {
