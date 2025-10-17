@@ -3,14 +3,7 @@ import { GaxiosError } from 'gaxios';
 import { JWT } from 'google-auth-library';
 import _ from 'lodash';
 
-import {
-  destroyEvents,
-  findEventsForDeletedNotionPages,
-  saveEventsToDatabase,
-  updateEventInDatabase,
-} from 'database';
 import logger from 'logger';
-import { Task } from 'notion';
 
 // Define the interface for the service account key
 /**
@@ -106,10 +99,9 @@ async function inserEvent(
   });
 
   if (/^2\d\d$/.test(createResponse.status.toString()) && createResponse.data) {
-    await saveEventsToDatabase([createResponse.data]);
     logger.info(`Event created: ${createResponse.data.htmlLink}`);
   } else {
-    throw new Error();
+    logger.error(`Error creating event: ${event.summary}`);
   }
 }
 
@@ -149,11 +141,13 @@ async function inserEvent(
 export async function updateCalendarEvent(
   auth: JWT,
   calendarId: string,
-  event: calendar_v3.Schema$Event,
+  updatedEvent: calendar_v3.Schema$Event,
   existingEvent: calendar_v3.Schema$Event
 ): Promise<void> {
-  const { id, ...spreadedEvent } = event;
+  if (!updatedEvent || !updatedEvent.id) return;
+  const { id, ...spreadedEvent } = updatedEvent;
   const calendar = new calendar_v3.Calendar({ auth });
+
   const fieldsToCompare = [
     'summary',
     'description',
@@ -162,11 +156,10 @@ export async function updateCalendarEvent(
     'location',
   ];
 
-  const fieldsUpdated: boolean = !_.isEqual(
-    _.pick(event, fieldsToCompare),
-    _.pick(existingEvent, fieldsToCompare)
-  );
+  const updatedClean = normalizeFalsy(_.pick(updatedEvent, fieldsToCompare));
+  const existingClean = normalizeFalsy(_.pick(existingEvent, fieldsToCompare));
 
+  const fieldsUpdated: boolean = !_.isEqual(updatedClean, existingClean);
   if (!fieldsUpdated) {
     const date: Date = existingEvent.start?.date
       ? new Date(existingEvent.start.date)
@@ -190,7 +183,6 @@ export async function updateCalendarEvent(
       /^2\d\d$/.test(updateResponse.status.toString()) &&
       updateResponse.data
     ) {
-      await updateEventInDatabase(event);
       logger.info(`Event updated: ${updateResponse.data.htmlLink}`);
     } else {
       const error = updateResponse as unknown as GaxiosError;
@@ -205,60 +197,97 @@ export async function updateCalendarEvent(
   }
 }
 
+const normalizeFalsy = (obj: Record<string, any>) =>
+  _.pickBy(obj, (v) => !(v === '' || v === null || v === undefined));
+
 /**
- * Fetches upcoming events from Google Calendar starting from the current date and time.
+ * Fetches relevant events from Google Calendar (from 4 days ago onward),
+ * following pagination until all pages are retrieved.
  *
- * @param auth - The Google Calendar authentication object (JWT).
- * @param calendarId - The ID of the Google Calendar from which to fetch events.
- * @returns A promise that resolves to an array of events starting from the current date and time.
- *
- * @example
- * const events = await fetchGoogleCalendarEvents(auth, 'primary');
- * events.forEach(event => console.log(event.summary));
+ * @param auth - Google Calendar authentication object (JWT)
+ * @param calendarId - The ID of the Google Calendar
+ * @returns All events starting from (now - 4 days)
  */
-export async function fetchGoogleCalendarEvents(
+export async function fetchRelevantGoogleCalendarEvents(
   auth: JWT,
   calendarId: string
 ): Promise<calendar_v3.Schema$Event[]> {
-  const calendar = new calendar_v3.Calendar({ auth });
+  const calendar = new calendar_v3.Calendar({ auth }); // ✅ same init as before
 
-  const res = await calendar.events.list({
-    calendarId,
-    singleEvents: true,
-    orderBy: 'startTime',
-    timeMin: new Date().toISOString(), // Only future events
-  });
+  const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
+  const timeMin = new Date(Date.now() - FOUR_DAYS_MS).toISOString();
 
-  const events = res.data.items || [];
-  return events;
+  let allEvents: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    await new Promise((res) => setTimeout(res, 100));
+    const res = await calendar.events.list({
+      calendarId,
+      singleEvents: true,
+      orderBy: 'startTime',
+      timeMin,
+      maxResults: 2500,
+      pageToken,
+    });
+
+    // ✅ Proper type-safe access
+    if (res.data.items && res.data.items.length > 0) {
+      allEvents = allEvents.concat(res.data.items);
+    }
+
+    pageToken = res.data.nextPageToken || undefined;
+  } while (pageToken);
+
+  return allEvents;
 }
 
 /**
- * Deletes Google Calendar events that no longer have a corresponding Notion page.
+ * Deletes orphaned Google Calendar events that no longer exist in Notion.
  *
- * @param pages - Array of current Notion Task objects.
- * @param auth - The Google Calendar authentication object (JWT).
- * @param calendarId - The ID of the Google Calendar.
- * @returns A promise that resolves when all orphaned events are deleted.
+ * This function ensures that only events whose Notion pages have been deleted
+ * (not archived) are removed from the Google Calendar.
+ *
+ * @param auth - The Google Calendar authentication object (JWT)
+ * @param calendarId - The ID of the Google Calendar
+ * @param knownNotionIds - A Set of all Notion page IDs (including active and archived)
+ * @returns A promise that resolves when all orphaned events have been processed
  */
-export async function deleteEventsForDeletedNotionPages(
-  pages: Task[],
+export async function deleteOrphanedGoogleEvents(
   auth: JWT,
-  calendarId: string
+  calendarId: string,
+  knownNotionIds: Set<string>,
+  allEvents: calendar_v3.Schema$Event[]
 ): Promise<void> {
-  const eventsToDelete = await findEventsForDeletedNotionPages(pages);
-
   const calendar = new calendar_v3.Calendar({ auth });
 
-  eventsToDelete.forEach(async (event) => {
-    logger.info(
-      `Event info: Notionpage was deleted so Google Event ${event.summary} was deleted aswell.`
-    );
-    await calendar.events.delete({
-      calendarId,
-      eventId: event.id!, // must match the ID you're trying to reuse
-    });
-  });
+  try {
+    for (const event of allEvents) {
+      if (!event.id) continue;
 
-  await destroyEvents(eventsToDelete);
+      if (!knownNotionIds.has(event.id)) {
+        try {
+          await new Promise((res) => setTimeout(res, 200)); // rate-limit safety delay
+          await calendar.events.delete({ calendarId, eventId: event.id });
+          logger.info(
+            `Deleted orphaned Google Calendar event: ${event.summary || event.id}`
+          );
+        } catch (error) {
+          const err = error as GaxiosError;
+          if (err.response?.status === 404) {
+            logger.warn(`Event ${event.id} already deleted or not found.`);
+          } else {
+            logger.error(
+              `Failed to delete orphaned event ${event.id}:`,
+              err.message
+            );
+          }
+        }
+      }
+    }
+
+    logger.info('Google Calendar orphan cleanup completed.');
+  } catch (error) {
+    logger.error('Error during Google Calendar orphan cleanup:', error);
+  }
 }

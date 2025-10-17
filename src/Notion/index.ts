@@ -2,12 +2,12 @@ import { Client } from '@notionhq/client';
 import {
   DatePropertyItemObjectResponse,
   QueryDatabaseParameters,
+  QueryDatabaseResponse,
   RichTextItemResponse,
   SelectPropertyItemObjectResponse,
   StatusPropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
-import { destroyArchivedEvent } from 'database';
 import logger from 'logger';
 
 export interface Task {
@@ -81,15 +81,26 @@ interface RichTextObjectRespone {
  *   })
  *   .catch(error => console.error(error));
  */
-export async function fetchNotionPage(
+export async function fetchNotionPages(
   notionClient: Client,
-  param: QueryDatabaseParameters
+  params: QueryDatabaseParameters
 ): Promise<Array<Task>> {
   try {
-    const response = await notionClient.databases.query(param);
+    let allPages: QueryDatabaseResponse['results'] = [];
+    let cursor: string | undefined = undefined;
+    do {
+      await new Promise((res) => setTimeout(res, 100));
+      const response = await notionClient.databases.query({
+        ...params,
+        start_cursor: cursor,
+      });
+
+      allPages = allPages.concat(response.results);
+      cursor = response.has_more ? response.next_cursor! : undefined;
+    } while (cursor);
 
     const tasks = await Promise.all(
-      response.results.map(async (page) => {
+      allPages.map(async (page) => {
         if (!('properties' in page)) {
           logger.error('Invalid page object');
           throw Error('Invalid page object');
@@ -140,11 +151,7 @@ export async function fetchNotionPage(
         };
       })
     );
-    const logMsg =
-      tasks.length === 1
-        ? 'Process 1 notion task'
-        : `Processed all ${tasks.length} notion tasks`;
-    logger.info(logMsg);
+
     return tasks;
   } catch (error) {
     logger.error(error);
@@ -154,53 +161,61 @@ export async function fetchNotionPage(
 
 /**
  * Archives tasks that are marked as "Done" and are older than a specified duration.
- *
- * This function iterates through an array of tasks, checks if their status is "Done",
- * and determines if they are older than the specified duration (3 days). If so, it updates
- * their status to "Archived" in Notion and deletes the corresponding event in the SQLite database.
+ * Removes archived tasks from the returned list.
  *
  * @async
  * @function archiveOldTasks
  * @param {Array<Task>} tasks - An array of Task objects to be processed.
  * @param {Client} notionClient - An instance of the Notion Client SDK used to update tasks.
- * @returns {Promise<void>} A promise that resolves when all eligible tasks are archived.
+ * @returns {Promise<Array<Task>>} A promise resolving to the remaining (non-archived) tasks.
  */
 export async function archiveOldTasks(
   tasks: Array<Task>,
   notionClient: Client
-): Promise<void> {
+): Promise<Array<Task>> {
   const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
   const now = new Date();
+
+  // Array to collect tasks that are NOT archived
+  const remainingTasks: Array<Task> = [];
 
   await Promise.all(
     tasks.map(async (task) => {
       const date = task.dateEnd
         ? new Date(task.dateEnd)
         : new Date(task.dateStart);
+
       const timeDiff = now.getTime() - date.getTime();
-      if (task.status === 'Done' && timeDiff >= THREE_DAYS_MS) {
-        try {
-          await notionClient.pages.update({
-            page_id: task.id,
-            properties: {
-              Status: {
-                status: {
-                  name: 'Archived',
-                },
-              },
+      const shouldArchive = task.status === 'Done' && timeDiff >= THREE_DAYS_MS;
+
+      if (!shouldArchive) {
+        remainingTasks.push(task);
+        return;
+      }
+
+      try {
+        // Archive task in Notion
+        await notionClient.pages.update({
+          page_id: task.id,
+          properties: {
+            Status: {
+              status: { name: 'Archived' },
             },
-          });
-          await destroyArchivedEvent(task.id);
-          task.status = 'Archived';
-          logger.info(
-            `Task with ID: ${task.id} and title: "${task.task}" has been archived in Notion and deleted in the sqlite database.`
-          );
-        } catch (error) {
-          logger.error(
-            `Failed to archive task with ID: ${task.id}. Error: ${error}`
-          );
-        }
+          },
+        });
+
+        logger.info(
+          `Task with ID: ${task.id} ("${task.task}") archived in Notion and deleted in SQLite.`
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to archive task with ID: ${task.id}. Error: ${error}`
+        );
+        // Keep task in list if archiving failed
+        remainingTasks.push(task);
       }
     })
   );
+
+  return remainingTasks;
 }
