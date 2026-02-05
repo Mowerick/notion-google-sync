@@ -151,18 +151,22 @@ export async function fetchNotionPages(
               NOTION_GOOGLE_PROPERTY_MAP.priority
             ] as SelectPropertyItemObjectResponse
           ).select?.name?.toLowerCase() || '';
-        const description =
-          (
-            properties[
-              NOTION_GOOGLE_PROPERTY_MAP.description
-            ] as unknown as RichTextObjectRespone
-          ).rich_text[0]?.plain_text || '';
-        const location =
-          (
-            properties[
-              NOTION_GOOGLE_PROPERTY_MAP.location
-            ] as unknown as RichTextObjectRespone
-          ).rich_text[0]?.plain_text || '';
+        const description = (
+          properties[
+            NOTION_GOOGLE_PROPERTY_MAP.description
+          ] as unknown as RichTextObjectRespone
+        ).rich_text
+          .map((rt) => rt.plain_text)
+          .join('\n')
+          .trim();
+        const location = (
+          properties[
+            NOTION_GOOGLE_PROPERTY_MAP.location
+          ] as unknown as RichTextObjectRespone
+        ).rich_text
+          .map((rt) => rt.plain_text)
+          .join('') // keep exact spacing/newlines as Notion provides
+          .trim();
 
         return {
           id: page.id?.split('-').join('') || '',
