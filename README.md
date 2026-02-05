@@ -23,12 +23,10 @@ You can now configure Notion property names dynamically using the mapping file a
 - Google Cloud service account key (`google_service_account.key`)
 - `.env` file with required environment variables
 
-## Notion Database Setup
-
 
 ## Notion Database Setup
 
-Your Notion database should contain the following fields and types. The property names can be customized in the mapping file:
+Your Notion database should contain the following fields and types. The property names can be customized using the mapping file:
 
 | Logical Name | Type         | Description                                 |
 |--------------|--------------|---------------------------------------------|
@@ -45,6 +43,38 @@ Your Notion database should contain the following fields and types. The property
 - Use the mapping file to link these logical names to your actual Notion property names.
 - The "Date" property should be a Notion Date property and can include both start and end dates/times.
 - The "Status" property should be a Notion Status property with at least the values: Not Started, In Progress, Done, Archived.
+
+## How to Use the Property Mapping
+
+The file `src/Utils/Config/notionGooglePropertyMap.ts` lets you map the logical property names used in the codebase to the actual property names in your Notion database. This makes it easy to adapt the sync to your own Notion schema.
+
+**To update the mapping:**
+
+1. Open `src/Utils/Config/notionGooglePropertyMap.ts` in your editor.
+2. Change the value for any key to match your Notion property name. For example, if your Notion database uses "Course" instead of "Class" for the category, update:
+
+```js
+category: 'Course', // Notion property for category
+```
+
+3. Save the file. No other code changes are needed.
+
+**Example mapping file:**
+
+```js
+const NOTION_GOOGLE_PROPERTY_MAP = {
+    summary: 'Task',
+    description: 'Description',
+    start: 'Date',
+    end: 'Date',
+    location: 'Location',
+    status: 'Status',
+    type: 'Type',
+    category: 'Class', // Change this to your Notion property name for category
+    priority: 'Priority',
+};
+export default NOTION_GOOGLE_PROPERTY_MAP;
+```
 
 ## Installation
 
