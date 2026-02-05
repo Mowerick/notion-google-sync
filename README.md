@@ -1,7 +1,12 @@
 # notion-google-sync
 
+
 A Node.js tool to synchronize Notion tasks with Google Calendar events.
 I created this tool to streamline my university workflow by keeping Notion tasks and Google Calendar events in sync. Managing tasks in Notion gives me a clear overview, while syncing them with Google Calendar helps me stay on top of deadlines, exam registrations, lectures, and group projects.
+
+## Dynamic Property Mapping
+
+You can now configure Notion property names dynamically using the mapping file at `src/Utils/Config/notionGooglePropertyMap.ts`. This allows you to change Notion database property names without modifying the codebase—just update the mapping file.
 
 ## Features
 
@@ -20,21 +25,24 @@ I created this tool to streamline my university workflow by keeping Notion tasks
 
 ## Notion Database Setup
 
-Your Notion database must contain the following fields with these exact names and types for the sync to work:
 
-| Field Name   | Type         | Description                                 |
+## Notion Database Setup
+
+Your Notion database should contain the following fields and types. The property names can be customized in the mapping file:
+
+| Logical Name | Type         | Description                                 |
 |--------------|--------------|---------------------------------------------|
-| Task         | Title        | The name/title of the task                  |
-| Status       | Status       | The status of the task (e.g., Not Started, In Progress, Done, Archived) |
-| Date         | Date         | The start and (optionally) end date/time    |
-| Class        | Select       | The class or category for the task          |
-| Type         | Select       | The type of task (e.g., Homework, Exam)     |
-| Priority     | Select       | The priority (e.g., High, Medium, Low)      |
-| Description  | Rich text    | A description of the task                   |
-| Location     | Rich text    | The location for the event (optional)       |
+| summary      | Title        | The name/title of the task                  |
+| status       | Status       | The status of the task (e.g., Not Started, In Progress, Done, Archived) |
+| start/end    | Date         | The start and (optionally) end date/time    |
+| category     | Select       | The category/class/course for the task      |
+| type         | Select       | The type of task (e.g., Registration, Errand, Homework, Deadline)     |
+| priority     | Select       | The priority (e.g., High, Medium, Low)      |
+| description  | Rich text    | A description of the task                   |
+| location     | Rich text    | The location for the event (optional)       |
 
-**Note:**  
-- Field names must match exactly (case-sensitive).
+**Note:**
+- Use the mapping file to link these logical names to your actual Notion property names.
 - The "Date" property should be a Notion Date property and can include both start and end dates/times.
 - The "Status" property should be a Notion Status property with at least the values: Not Started, In Progress, Done, Archived.
 
@@ -66,8 +74,8 @@ npm install
     GOOGLE_CALENDAR_ID=your_calendar_id
     ```
 
-4. **Configuration File**:  
-    - Edit `src/config.js` to map Notion properties to Google Calendar event fields and adjust sync options.
+4. **Property Mapping File**:
+    - Edit `src/Utils/Config/notionGooglePropertyMap.ts` to map logical property names (like `category`, `summary`, etc.) to your Notion database property names. This enables flexible renaming and schema changes without code edits.
 
 ## Usage
 

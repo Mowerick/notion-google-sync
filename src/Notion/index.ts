@@ -9,6 +9,7 @@ import {
 } from '@notionhq/client/build/src/api-endpoints';
 
 import logger from 'logger';
+import NOTION_GOOGLE_PROPERTY_MAP from 'mapping';
 
 export interface Task {
   id: string;
@@ -16,7 +17,7 @@ export interface Task {
   task: string;
   dateStart: string;
   dateEnd: string;
-  className: string;
+  category: string;
   type: string;
   priority: string;
   description: string;
@@ -55,7 +56,7 @@ interface RichTextObjectRespone {
  * @property {string} task - The title or name of the task.
  * @property {string} dateStart - The start date of the task (from the "Date" property).
  * @property {string} dateEnd - The end date of the task (from the "Date" property).
- * @property {string} className - The class or category associated with the task (from the "Class" property).
+ * @property {string} category - The class or category associated with the task (from the "Class" property).
  * @property {string} type - The type of task (from the "Type" property, such as "Homework", "Exam").
  * @property {string} priority - The priority of the task (e.g., "high", "medium", "low").
  * @property {string} description - A brief description of the task (from the "Description" property).
@@ -109,33 +110,59 @@ export async function fetchNotionPages(
         const properties = page.properties;
 
         const status =
-          (properties['Status'] as StatusPropertyItemObjectResponse).status
-            ?.name || '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.status
+            ] as StatusPropertyItemObjectResponse
+          ).status?.name || '';
         const type =
-          (properties['Type'] as SelectPropertyItemObjectResponse).select
-            ?.name || '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.type
+            ] as SelectPropertyItemObjectResponse
+          ).select?.name || '';
         const task =
-          (properties['Task'] as TitleObjectResponse).title[0]?.plain_text ||
-          '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.summary
+            ] as TitleObjectResponse
+          ).title[0]?.plain_text || '';
         const dateStart =
-          (properties['Date'] as DatePropertyItemObjectResponse).date?.start ||
-          '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.start
+            ] as DatePropertyItemObjectResponse
+          ).date?.start || '';
         const dateEnd =
-          (properties['Date'] as DatePropertyItemObjectResponse).date?.end ||
-          '';
-        const className =
-          (properties['Class'] as SelectPropertyItemObjectResponse).select
-            ?.name || '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.end
+            ] as DatePropertyItemObjectResponse
+          ).date?.end || '';
+        const category =
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.category
+            ] as SelectPropertyItemObjectResponse
+          ).select?.name || '';
         const priority =
           (
-            properties['Priority'] as SelectPropertyItemObjectResponse
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.priority
+            ] as SelectPropertyItemObjectResponse
           ).select?.name?.toLowerCase() || '';
         const description =
-          (properties['Description'] as unknown as RichTextObjectRespone)
-            .rich_text[0]?.plain_text || '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.description
+            ] as unknown as RichTextObjectRespone
+          ).rich_text[0]?.plain_text || '';
         const location =
-          (properties['Location'] as unknown as RichTextObjectRespone)
-            .rich_text[0]?.plain_text || '';
+          (
+            properties[
+              NOTION_GOOGLE_PROPERTY_MAP.location
+            ] as unknown as RichTextObjectRespone
+          ).rich_text[0]?.plain_text || '';
 
         return {
           id: page.id?.split('-').join('') || '',
@@ -143,7 +170,7 @@ export async function fetchNotionPages(
           task,
           dateStart,
           dateEnd,
-          className,
+          category,
           type,
           priority,
           description,

@@ -16,6 +16,7 @@
       "google": ["Google"],
       "notion": ["Notion"],
       "config": ["Utils/Config"],
+      "mapping": ["Utils/Config/notionGooglePropertyMap"],
       "logger": ["Utils/Logger"],
       "database": ["Database"],
       "utils": ["Utils/"]

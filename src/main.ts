@@ -73,7 +73,7 @@ async function main() {
   for (const page of pagesWithoutArchived || []) {
     if (!page.dateStart) {
       logger.error(
-        `Page: ${page.task} Class: ${page.className} got no Date, event will not be created`
+        `Page: ${page.task} Category: ${page.category} got no Date, event will not be created`
       );
       continue;
     }

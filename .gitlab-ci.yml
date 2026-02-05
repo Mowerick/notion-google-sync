@@ -1,5 +1,10 @@
 image: node:20.10.0
 
+# workaround for Docker API version compatibility 
+# https://support.gitlab.com/hc/en-us/articles/23582251372060-Docker-API-Version-Mismatch-Errors-in-CI-CD-Pipelines
+variables:
+  DOCKER_API_VERSION: "1.44"
+
 stages:
   - build
   - deploy
@@ -39,11 +44,20 @@ deploy:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
   script:
-    # Deploy node_modules to the server
-    - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
-    - scp yarn.lock $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
-    # Deploy the contents of dist/ to the server
-    - scp -r dist/* $DEPLOY_USER@$DEPLOY_HOST:/scripts/notion-google-sync/
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /scripts/notion-google-sync/ && yarn install --production --frozen-lockfile"
+  - |
+    for TARGET in uni-notion-google-sync private-notion-google-sync; do
+      echo "Deploying to $TARGET"
+
+      scp package.json yarn.lock \
+        $DEPLOY_USER@$DEPLOY_HOST:/scripts/$TARGET/
+
+      scp -r dist/* \
+        $DEPLOY_USER@$DEPLOY_HOST:/scripts/$TARGET/
+
+      ssh $DEPLOY_USER@$DEPLOY_HOST "
+        cd /scripts/$TARGET &&
+        yarn install --production --frozen-lockfile
+      "
+    done
   tags:
     - node

@@ -5,11 +5,11 @@ import { Task } from 'notion';
 /**
  * Converts a Notion task object into a Google Calendar event object.
  *
- * @param page - The Notion task to convert. Should contain properties such as dateStart, dateEnd, description, priority, status, className, task, type, id, and location.
+ * @param page - The Notion task to convert. Should contain properties such as dateStart, dateEnd, description, priority, status, category, task, type, id, and location.
  * @returns A Google Calendar event object (`calendar_v3.Schema$Event`) representing the Notion task.
  *
  * @remarks
- * - The function constructs the event summary by concatenating the type, className, and task fields.
+ * - The function constructs the event summary by concatenating the type, category, and task fields.
  * - The event description includes the status, priority, and optionally the task description.
  * - Determines whether to use date or dateTime fields based on the presence of time in the date strings.
  * - If both dateStart and dateEnd are present and contain time, uses dateTime fields; otherwise, uses date fields.
@@ -24,13 +24,13 @@ export default function convertNotionTaskToCalendarEvent(
     description,
     priority,
     status,
-    className,
+    category,
     task,
     type,
     id,
     location,
   } = page;
-  const summary = [type, className, task].filter(Boolean).join(' ');
+  const summary = [type, category, task].filter(Boolean).join(' ');
 
   const eventDescription =
     `Status: ${status}\n` +
