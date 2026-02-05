@@ -6,7 +6,7 @@ I created this tool to streamline my university workflow by keeping Notion tasks
 
 ## Dynamic Property Mapping
 
-You can now configure Notion property names dynamically using the mapping file at `src/Utils/Config/notionGooglePropertyMap.ts`. This allows you to change Notion database property names without modifying the codebase—just update the mapping file.
+You can now configure Notion property names dynamically using the JSON file `.notion-google-sync.json` in your project root. This allows you to change Notion database property names without modifying the codebase—just update the JSON file. This file should be added to `.gitignore` and not deployed or committed.
 
 ## Features
 
@@ -40,40 +40,41 @@ Your Notion database should contain the following fields and types. The property
 | location     | Rich text    | The location for the event (optional)       |
 
 **Note:**
-- Use the mapping file to link these logical names to your actual Notion property names.
+- Use the mapping JSON file to link these logical names to your actual Notion property names.
 - The "Date" property should be a Notion Date property and can include both start and end dates/times.
 - The "Status" property should be a Notion Status property with at least the values: Not Started, In Progress, Done, Archived.
 
 ## How to Use the Property Mapping
 
-The file `src/Utils/Config/notionGooglePropertyMap.ts` lets you map the logical property names used in the codebase to the actual property names in your Notion database. This makes it easy to adapt the sync to your own Notion schema.
+The file `.notion-google-sync.json` in your project root lets you map the logical property names used in the codebase to the actual property names in your Notion database. This makes it easy to adapt the sync to your own Notion schema and keep your mapping private or environment-specific.
 
 **To update the mapping:**
 
-1. Open `src/Utils/Config/notionGooglePropertyMap.ts` in your editor.
+1. Open `.notion-google-sync.json` in your editor.
 2. Change the value for any key to match your Notion property name. For example, if your Notion database uses "Course" instead of "Class" for the category, update:
 
-```js
-category: 'Course', // Notion property for category
+```json
+{
+    "category": "Course"
+}
 ```
 
 3. Save the file. No other code changes are needed.
 
 **Example mapping file:**
 
-```js
-const NOTION_GOOGLE_PROPERTY_MAP = {
-    summary: 'Task',
-    description: 'Description',
-    start: 'Date',
-    end: 'Date',
-    location: 'Location',
-    status: 'Status',
-    type: 'Type',
-    category: 'Class', // Change this to your Notion property name for category
-    priority: 'Priority',
-};
-export default NOTION_GOOGLE_PROPERTY_MAP;
+```json
+{
+    "summary": "Task",
+    "description": "Description",
+    "start": "Date",
+    "end": "Date",
+    "location": "Location",
+    "status": "Status",
+    "type": "Type",
+    "category": "Class",
+    "priority": "Priority"
+}
 ```
 
 ## Installation
@@ -105,7 +106,7 @@ npm install
     ```
 
 4. **Property Mapping File**:
-    - Edit `src/Utils/Config/notionGooglePropertyMap.ts` to map logical property names (like `category`, `summary`, etc.) to your Notion database property names. This enables flexible renaming and schema changes without code edits.
+    - Edit `.notion-google-sync.json` in your project root to map logical property names (like `category`, `summary`, etc.) to your Notion database property names. This enables flexible renaming and schema changes without code edits. Make sure this file is listed in `.gitignore`.
 
 ## Usage
 

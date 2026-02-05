@@ -7,9 +7,21 @@ import {
   SelectPropertyItemObjectResponse,
   StatusPropertyItemObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
+import fs from 'fs';
+import path from 'path';
 
 import logger from 'logger';
-import NOTION_GOOGLE_PROPERTY_MAP from 'mapping';
+
+function loadNotionGooglePropertyMap(): Record<string, string> {
+  const configPath = path.resolve(process.cwd(), '.notion-google-sync.json');
+  try {
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    return JSON.parse(raw);
+  } catch (error) {
+    logger.error('Error updating event: ', error);
+    return {};
+  }
+}
 
 export interface Task {
   id: string;
@@ -108,6 +120,7 @@ export async function fetchNotionPages(
         }
 
         const properties = page.properties;
+        const NOTION_GOOGLE_PROPERTY_MAP = loadNotionGooglePropertyMap();
 
         const status =
           (
