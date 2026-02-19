@@ -70,7 +70,7 @@ export async function createCalendarEvent(
     const status = error?.response?.status;
     if (status === 409 && isDuplicateError) {
       logger.error(
-        `Error creating event: Duplicate event detected for ${event.summary}, it seems event was deleted from database but notion page is still getting returned.`
+        `Error creating event: Duplicate event detected for ${event.summary}.`
       );
     } else {
       logger.error('Error creating event:', error);
@@ -214,8 +214,8 @@ export async function fetchRelevantGoogleCalendarEvents(
 ): Promise<calendar_v3.Schema$Event[]> {
   const calendar = new calendar_v3.Calendar({ auth }); // ✅ same init as before
 
-  const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
-  const timeMin = new Date(Date.now() - FOUR_DAYS_MS).toISOString();
+  const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+  const timeMin = new Date(Date.now() - ONE_MONTH_MS).toISOString();
 
   let allEvents: calendar_v3.Schema$Event[] = [];
   let pageToken: string | undefined;

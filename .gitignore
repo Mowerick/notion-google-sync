@@ -7,3 +7,4 @@ log/
 google_service_account.key
 database.sqlite
 .notion-google-sync.json
+.vscode/
